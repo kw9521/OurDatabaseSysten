@@ -36,6 +36,22 @@ public class Page {
         this.recordCount--;
         this.currentSize -= record.getSize();
     }
+
+    public int getRecordCount(){
+        return recordCount;
+    }
+
+    public byte[] toBinary(Table table){
+        ByteBuffer data = ByteBuffer.allocate(Main.getPageSize());
+        data.putInt(getRecordCount());
+
+        for (Record record : records){
+            //record.toBinary is broken
+            byte[] recordBytes = record.toBinary();
+            buffer.put(recordBytes);
+        }
+        return buffer.array();
+    }
 }
 
 

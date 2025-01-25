@@ -1,7 +1,7 @@
 import java.io.File;
 import java.util.Scanner;
 
-public class Database {
+public class Main {
     private static Catalog catalog;
     private static PageBuffer buffer;
     private static StorageManager storageManager;
@@ -87,4 +87,9 @@ public class Database {
         }
         
     }
+
+    public static int getPageSize() {
+        return pageSize;
+    }
+
 }

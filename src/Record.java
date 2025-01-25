@@ -1,5 +1,6 @@
 // Individual entry, tuple, in a table.
 
+import java.nio.ByteBuffer;
 import java.util.ArrayList;
 
 public class Record {
@@ -11,8 +12,16 @@ public class Record {
         this.data = data;
     }
 
-    public void setData(ArrayList<Object> data){
-        this.data = data;
+    public void addValue(Object value){
+        this.data.add(value);
+        // Handle size of varChar
+        this.size += 1;
+    }
+
+    public void removeValue(int index){
+        this.data.remove(index);
+        // Handle size of varChar
+        this.size -= 1;
     }
 
     public ArrayList<Object> getData(){
@@ -21,5 +30,12 @@ public class Record {
 
     public int getSize(){
         return this.size;
+    }
+
+    public byte[] toBinary(){
+        ByteBuffer data = ByteBuffer.allocate(this.size);
+        // get sizes of each datatype, add to "data"
+        // ?
+        return data.array();
     }
 }
