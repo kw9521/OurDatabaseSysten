@@ -1,9 +1,6 @@
 import java.io.File;
 import java.util.Scanner;
 
-import ddl.DDLParser;
-import dml.DMLParser;
-
 public class Database {
     private static Catalog catalog;
     private static PageBuffer buffer;
@@ -32,9 +29,9 @@ public class Database {
         }
 
         // Create our stuff
-        catalog = new Catalog(); // idk what args this needs
+        catalog = new Catalog(dbLocation, pageSize, bufferSize);
         buffer = new PageBuffer(bufferSize);
-        storageManager = new StorageManager(); // idk what this needs either
+        storageManager = new StorageManager(catalog, buffer); // idk what this needs either
 
         // Initialize parsers
         ddlParser = new DDLParser();
@@ -66,27 +63,32 @@ public class Database {
         // Start the input loop
         try (Scanner scanner = new Scanner(System.in)) {
             System.out.println("\nPlease enter commands, enter <quit> to shutdown the db\n");
-
+        
             while (true) {
                 System.out.print("JottQL> ");
                 String inputLine = scanner.nextLine();
-
+        
                 if (inputLine == null || inputLine.trim().equalsIgnoreCase("quit")) {
                     break;
                 }
-
+        
                 inputLine = inputLine.trim();
-
-                if (inputLine.startsWith("create") || inputLine.startsWith("alter") || inputLine.startsWith("drop")) {
-                    ddlParser.parseDDLstatement(inputLine);
-                } else if (inputLine.startsWith("insert") || inputLine.startsWith("display") || inputLine.startsWith("select")) {
-                    dmlParser.parseDMLstatement(inputLine);
-                } else {
-                    System.out.println("Unknown command: " + inputLine);
+        
+                try {
+                    if (inputLine.startsWith("create") || inputLine.startsWith("alter") || inputLine.startsWith("drop")) {
+                        ddlParser.parseDDLstatement(inputLine, catalog, storageManager);
+                    } else if (inputLine.startsWith("insert") || inputLine.startsWith("display") || inputLine.startsWith("select")) {
+                        dmlParser.parseDMLstatement(inputLine, catalog, storageManager);
+                    } else {
+                        System.out.println("Unknown command: " + inputLine);
+                    }
+                } catch (Exception e) {
+                    System.err.println("Error: " + e.getMessage());
                 }
             }
         } catch (Exception e) {
             System.err.println("Error reading input: " + e.getMessage());
         }
+        
     }
 }
