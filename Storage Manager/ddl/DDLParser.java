@@ -1,4 +1,5 @@
 package ddl;
+
 public class DDLParser implements DDLParserInterface{
     //Example creation:
     //JottQL> create table foo(
@@ -25,11 +26,11 @@ public class DDLParser implements DDLParserInterface{
     
         try {
             if (statement.startsWith(CREATE_TABLE_STATMENT)) {
-                // Call and implement method
+                createTable(statement);
             } else if (statement.startsWith(ALTER_TABLE_STATEMENT)) {
-                // Call and implement method
+                alterTable(statement);
             } else if (statement.startsWith(DROP_TABLE_STATEMENT)) {
-                // Call and implement method
+                dropTable(statement);
             } else {
                 throw new DDLParserException(String.format(INVALID_STATEMENT, statement));
             }
@@ -44,9 +45,17 @@ public class DDLParser implements DDLParserInterface{
         }
     }
     
+    private void createTable(String statement){
+        //implement
+        System.out.println("Creating table...");
+    }
 
+    private void alterTable(String statement){
+        //implement
+    }
 
-
-
+    private void dropTable(String statement){
+        //implement
+    }
 
 }
