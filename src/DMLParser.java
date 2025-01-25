@@ -68,8 +68,12 @@ public class DMLParser {
     }
 
     private void displaySchema(String statement, Catalog catalog) {
-        // Implement
-        System.out.println("DB Location:");
+        System.out.println("DB Location: " + catalog.getDbLocation());
+        System.out.println("Page Size: " + catalog.getPageSize());
+        System.out.println("Buffer Size: " + catalog.getDbLocation());
+
+        // Print tables!
+        // tables = catalog.getTables();
     }
 
     private void displayInfo(String statement) {

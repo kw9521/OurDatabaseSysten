@@ -56,10 +56,6 @@ public class Database {
             }
         }
 
-        // Display buffer and page size
-        System.out.println("Page size: " + pageSize);
-        System.out.println("Buffer size: " + bufferSize);
-
         // Start the input loop
         try (Scanner scanner = new Scanner(System.in)) {
             System.out.println("\nPlease enter commands, enter <quit> to shutdown the db\n");
