@@ -34,4 +34,11 @@ public class Table {
         System.out.println("Table schema: ");
         // for loop to call attributes.displayAttributes()
     }
+
+    // function that storage manager calls to convert info to bytes
+    // can move this around to diff file later
+    public void convertToByte(){
+
+    }
+
 }
