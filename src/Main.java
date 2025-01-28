@@ -88,6 +88,10 @@ public class Main {
         
     }
 
+    public static PageBuffer getBuffer() {
+        return buffer;
+    }
+
     public static int getPageSize() {
         return pageSize;
     }
