@@ -4,15 +4,15 @@ public class Attribute {
     private String name; // Names can start with a alpha-character and contain alphanumeric characters.
     private String type; // Attribute types can only be integer, double, boolean, char(x), and varchar(x)
     // Constraints
-    private boolean notNull;
+    private boolean isNullable;
     private boolean primaryKey; // Primary keys are assumed to be automatically not null and unique.
     private boolean unique;
     private int size;
 
-    public Attribute(String name, String type, boolean notNull, boolean primaryKey, boolean unique, int size){
+    public Attribute(String name, String type, boolean isNullable, boolean primaryKey, boolean unique, int size){
         this.name = name;
         this.type = type;
-        this.notNull = notNull;
+        this.isNullable = isNullable;
         this.primaryKey = primaryKey;
         this.unique = unique;
         this.size = size;
@@ -34,12 +34,12 @@ public class Attribute {
         return this.type;
     }
 
-    public void setNotnull(boolean notNull){
-        this.notNull = notNull;
+    public void setNullable(boolean notNull){
+        this.isNullable = notNull;
     }
 
-    public boolean isNotNull(){
-        return this.notNull;
+    public boolean getNullable(){
+        return this.isNullable;
     }
 
     public void setPrimaryKey(boolean primaryKey){
