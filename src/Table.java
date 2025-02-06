@@ -1,16 +1,21 @@
 // Table = collection of pages
 
+import java.util.List;
+
 public class Table {
     private String name;
     private int tableId;
-    private Attribute[] attributes;
+    private List<Attribute> attributes;
+    private int attributesCount; 
     private int pageCount;
     private int[] pages; // pageId
 
-    public Table(String name, int tableId, Attribute[] attributes, int[] pages){
+    public Table(String name, int tableID, int attributesCount, List<Attribute> attributes, int[] pages){
         this.name = name;
-        this.tableId = tableId;
+        this.tableId = tableID;
+        this.attributesCount = attributesCount;
         this.attributes = attributes;
+
         this.pageCount = 0;
         this.pages = pages;
     }
