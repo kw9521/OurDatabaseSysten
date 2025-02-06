@@ -41,6 +41,10 @@ public class Page {
         return recordCount;
     }
 
+    public List<Record> getRecords(){
+        return records;
+    }
+
     public byte[] toBinary(Table table){
         ByteBuffer data = ByteBuffer.allocate(Main.getPageSize());
         data.putInt(getRecordCount());
