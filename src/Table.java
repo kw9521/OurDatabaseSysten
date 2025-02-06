@@ -44,6 +44,23 @@ public class Table {
         return this.name;
     }
 
+    public List<Attribute> getAttributes(){
+        return this.attributes;
+    }
+
+    public int getPageCount(){
+        return this.pageCount;
+    }
+    
+    public int getRecordCount() {
+        if (pages == null || pages.isEmpty()) {
+            return 0; // No pages, so no records
+        }
+        // TODO
+        return 0;
+    }
+    
+
     public void displayTable(){
         System.out.println("Table name: Gian (test)");
         System.out.println("Table schema: ");

@@ -38,7 +38,7 @@ public class Attribute {
         this.isNullable = notNull;
     }
 
-    public boolean getNullable(){
+    public boolean isNullable(){
         return this.isNullable;
     }
 

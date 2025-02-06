@@ -1,3 +1,6 @@
+import java.util.ArrayList;
+import java.util.List;
+
 public class DMLParser {
     // Example creation:
     // JottQL> create table foo(
@@ -67,14 +70,41 @@ public class DMLParser {
         System.out.println("Inserting into table...");
     }
 
-    private void displaySchema(String statement, Catalog catalog) {
-        System.out.println("DB Location: " + catalog.getDbLocation());
-        System.out.println("Page Size: " + catalog.getPageSize());
-        System.out.println("Buffer Size: " + catalog.getBufferSize());
+private static void displaySchema(String normalizedStatement, Catalog catalog) {
+    System.out.println("\nDB Location: " + catalog.getDbLocation());
+    System.out.println("Page Size: " + catalog.getPageSize());
+    System.out.println("Buffer Size: " + catalog.getBufferSize() + "\n");
 
-        // Print tables!
-        // tables = catalog.getTables();
+    List<Table> tables = catalog.getTables();
+    if (tables == null || tables.isEmpty()) {
+        System.out.println("No tables to display.\n");
+        System.out.println("SUCCESS");
+        return;
     }
+
+    System.out.println("Tables:\n");
+    for (Table table : tables) {
+        System.out.println("Table Name: " + table.getName());
+        System.out.println("Table Schema:");
+
+        for (Attribute attr : table.getAttributes()) {
+            StringBuilder attributeDetails = new StringBuilder();
+            attributeDetails.append("    ").append(attr.getName()).append(":").append(attr.getType());
+
+            if (attr.isPrimaryKey()) attributeDetails.append(" primarykey");
+            if (attr.isUnique()) attributeDetails.append(" unique");
+            if (attr.isNullable()) attributeDetails.append(" notnull");
+
+            System.out.println(attributeDetails);
+        }
+
+        System.out.println("Pages: " + table.getPageCount());
+        System.out.println("Records: " + table.getRecordCount() + "\n");
+    }
+
+    System.out.println("SUCCESS");
+}
+
 
     private void displayInfo(String statement) {
         // Implement
@@ -82,6 +112,7 @@ public class DMLParser {
         // - table schema
         // - number of pages
         // - number of records
+        // BASICALLY SAME AS ABOVE BUT SHORTER
         System.out.println("Table name:");
     }
 
