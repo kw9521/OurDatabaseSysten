@@ -7,9 +7,9 @@ public class Table {
     private int pageCount;
     private int[] pages; // pageId
 
-    public Table(String name, int tableId, Attribute[] attributes, int[] pages){
+    public Table(int name, String tableName, int attributes, Attribute[] pages){
         this.name = name;
-        this.tableId = tableId;
+        this.tableId = tableName;
         this.attributes = attributes;
         this.pageCount = 0;
         this.pages = pages;

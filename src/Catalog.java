@@ -12,45 +12,47 @@ public class Catalog {
     private int tableCount;
     private Dictionary<Integer, String> dataTypes = new Hashtable<>();
 
-    public Catalog(String dbLocation, int pageSize, int bufferSize){
+    public Catalog(String dbLocation, int pageSize, int bufferSize) {
         this.dbLocation = dbLocation;
         this.pageSize = pageSize;
         this.bufferSize = bufferSize;
     }
 
-    public String getDbLocation(){
+    public String getDbLocation() {
         return this.dbLocation;
     }
 
-    public int getPageSize(){
+    public int getPageSize() {
         return this.pageSize;
     }
 
-    public int getBufferSize(){
+    public int getBufferSize() {
         return this.bufferSize;
     }
 
-    // catalog format: ["PS", 
-    // "numOfTable", 
-        // "Table1ID", "lengthOfTable1Name", "TableName1Char", "TableName1Char2", ..., "TableName1CharN"
-            // "NumOfAttributeinTable1", 
-                // "Len of Att1 Name", "Att1 Name", "datatype", "bitmap is a string of 01s", 
-                // "Len of Att2 Name", "Att2 Name", "datatype", "bitmap is a string of 01s",
-                // ...
-                // "Len of AttN Name", "AttN Name", "datatype", "bitmap is a string of 01s",
-        // "Table2ID", "lengthOfTable2Name", "TableName2", "TableName2Char2", ..., "TableName12harN"
-            // "NumOfAttributeinTable2",
-                // "Len of Att1 Name", "Att1 Name", "datatype", "bitmap is a string of 01s", 
-                // "Len of Att2 Name", "Att2 Name", "datatype", "bitmap is a string of 01s",
-                // ...
-                // "Len of AttN Name", "AttN Name", "datatype", "bitmap is a string of 01s",
-        // ...
-            // "NumOfAttributeinTableN", 
-                // "Len of Att1 Name", "Att1 Name", "datatype", "bitmap is a string of 01s", 
-                // "Len of Att2 Name", "Att2 Name", "datatype", "bitmap is a string of 01s",
-                // ...
-                // "Len of AttN Name", "AttN Name", "datatype", "bitmap is a string of 01s"]
-    public void parseCatalog(ArrayList<String> catalog){
+    // catalog format: ["PS",
+    // "numOfTable",
+    // "Table1ID", "lengthOfTable1Name", "TableName1Char", "TableName1Char2", ...,
+    // "TableName1CharN"
+    // "NumOfAttributeinTable1",
+    // "Len of Att1 Name", "Att1 Name", "datatype", "bitmap is a string of 01s",
+    // "Len of Att2 Name", "Att2 Name", "datatype", "bitmap is a string of 01s",
+    // ...
+    // "Len of AttN Name", "AttN Name", "datatype", "bitmap is a string of 01s",
+    // "Table2ID", "lengthOfTable2Name", "TableName2", "TableName2Char2", ...,
+    // "TableName12harN"
+    // "NumOfAttributeinTable2",
+    // "Len of Att1 Name", "Att1 Name", "datatype", "bitmap is a string of 01s",
+    // "Len of Att2 Name", "Att2 Name", "datatype", "bitmap is a string of 01s",
+    // ...
+    // "Len of AttN Name", "AttN Name", "datatype", "bitmap is a string of 01s",
+    // ...
+    // "NumOfAttributeinTableN",
+    // "Len of Att1 Name", "Att1 Name", "datatype", "bitmap is a string of 01s",
+    // "Len of Att2 Name", "Att2 Name", "datatype", "bitmap is a string of 01s",
+    // ...
+    // "Len of AttN Name", "AttN Name", "datatype", "bitmap is a string of 01s"]
+    public void parseCatalog(ArrayList<String> catalog) {
 
         this.pageSize = Integer.parseInt(catalog.get(0));
         this.tableCount = Integer.parseInt(catalog.get(1));
@@ -63,15 +65,15 @@ public class Catalog {
     }
 
     // go through tables
-    // table constructor: Table(String name, int tableId, Attribute[] attributes, int[] pages)
-    public void readTable(ArrayList<String> catalog, int currIndex){
-        for (int i = 0; i < tableCount; i++){
+    // table constructor: Table(String name, int tableId, Attribute[] attributes,
+    // int[] pages)
+    public void readTable(ArrayList<String> catalog, int currIndex) {
+        for (int i = 0; i < tableCount; i++) {
 
             String tableName = "";
             int tableID;
             Attribute[] attributes;
             int[] pages;
-
 
             tableID = Integer.parseInt(catalog.get(currIndex));
             currIndex++;
@@ -79,9 +81,8 @@ public class Catalog {
             int lengthOfTableName = Integer.parseInt(catalog.get(currIndex));
             currIndex++;
 
-            
             // go thru length of table name and keep adding to form a tableName
-            for (int tabNameIndex = 0; tabNameIndex < lengthOfTableName; tabNameIndex++){
+            for (int tabNameIndex = 0; tabNameIndex < lengthOfTableName; tabNameIndex++) {
                 String tabNameChar = catalog.get(currIndex);
                 currIndex++;
                 tableName += tabNameChar;
@@ -92,26 +93,26 @@ public class Catalog {
 
             readAttribute(catalog, currIndex, numOfAttributes);
 
-
         }
     }
 
-    // Attribute(String name, String type, boolean notNull, boolean primaryKey, boolean unique, int size)
-    // "NumOfAttributeinTable1", 
-                // "Len of Att1 Name", "Att1 Name", "datatype", "bitmap is a string of 01s", 
-    public void readAttribute(ArrayList<String> catalog, int currIndex, int numOfAttributes){
+    // Attribute(String name, String type, boolean notNull, boolean primaryKey,
+    // boolean unique, int size)
+    // "NumOfAttributeinTable1",
+    // "Len of Att1 Name", "Att1 Name", "datatype", "bitmap is a string of 01s",
+    public void readAttribute(ArrayList<String> catalog, int currIndex, int numOfAttributes) {
 
-        for(int currAttr = 0; currAttr < numOfAttributes; currAttr++){
+        for (int currAttr = 0; currAttr < numOfAttributes; currAttr++) {
             int lenOfAttName = Integer.parseInt(catalog.get(currIndex));
 
             String attrName = "";
             // go thru length of attribute name and keep adding to form a attribute name
-            for (int attrNameIndex = 0; attrNameIndex < lenOfAttName; attrNameIndex++){
+            for (int attrNameIndex = 0; attrNameIndex < lenOfAttName; attrNameIndex++) {
                 String tabNameChar = catalog.get(currIndex);
                 currIndex++;
                 attrName += tabNameChar;
             }
-            
+
             int THEdataType = Integer.parseInt(catalog.get(currIndex));
             currIndex++;
 
@@ -119,7 +120,7 @@ public class Catalog {
         }
     }
 
-    public void populateDict(){
+    public void populateDict() {
 
         dataTypes.put(0, "String");
 
@@ -130,11 +131,10 @@ public class Catalog {
         dataTypes.put(3, "double");
         dataTypes.put(4, "float");
 
-
-
-
-
     }
 
+    public int getNextTableNumber() {
+        return this.tables.size();
+    }
 
 }
