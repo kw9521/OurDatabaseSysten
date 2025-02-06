@@ -35,7 +35,7 @@ public class Catalog {
     }
 
     public int getNextTableNumber(){
-        return 0;
+        // TODO
     }
 
     public void addTable(){
@@ -45,10 +45,6 @@ public class Catalog {
 
     public void populateDict(){
         dataTypes.put(0, "String");
-
-        // initially assume varchar is a char for now
-        // use the bitmap to differentiate between char and varchar
-        // 0 for char, 1 for varchar
         dataTypes.put(1, "char");
         dataTypes.put(2, "int");
         dataTypes.put(3, "double");
@@ -86,21 +82,24 @@ public class Catalog {
 
         // use as pointer to go thru arraylist
         int currIndex = 2;
-
         readTable(catalog, currIndex);
 
     }
 
-    // table constructor: Table(String name, int tableId, Attribute[] attributes, int[] pages)
+    /**
+     * Given initial catalog arraylist of strings, parse info into diff tables
+     * After parsing, put all table info to create instance of table. 
+     * Then add each instance of table into List<Table> tables
+     * @param catalog
+     * @param currIndex
+     */
     public void readTable(ArrayList<String> catalog, int currIndex){
-
         // go through tables
         for (int i = 0; i < tableCount; i++){
 
             String tableName = "";
             int tableID;
             List<Attribute> attributes = new ArrayList<>();
-
             int[] pages;
 
             tableID = Integer.parseInt(catalog.get(currIndex));
@@ -119,21 +118,30 @@ public class Catalog {
             int numOfAttributes = Integer.parseInt(catalog.get(currIndex));
             currIndex++;
 
-            ArrayList<Attribute> x = readAttribute(catalog, currIndex, numOfAttributes);
-
-
+            List<Attribute> allOfTbleAttributes = readAttribute(catalog, currIndex, numOfAttributes);
+            
+            // TODO:
+            // create a tabe, add it into List<Table> tables
+            // Table(String name, int tableID, int attributesCount, List<Attribute> attributes, int[] pages)
         }
     }
 
-    // "NumOfAttributeinTable1", 
-    // "Len of Att1 Name", "Att1 Name", "datatype", "bitmap is a string of 0s/1s", 
+
+    /**
+     * Read next 3 catalog's boxes, grab name and type of the attribute, use Attribue.java's parse() to create an
+     * instance of Attribute and add it to an allAttribute list. 
+     * @param catalog arraylist of strings being read
+     * @param currIndex where we are in catalog index-wise
+     * @param numOfAttributes  # of attributes to read
+     * @return allAttributes: an arraylist of all the attributes associated with this table
+     */
     public ArrayList<Attribute> readAttribute(ArrayList<String> catalog, int currIndex, int numOfAttributes){
 
         String attrName = "";
         String dataTypeString;
         ArrayList<Attribute> allAttributes = new ArrayList<>();;
 
-        // go thru num of  attributes
+        // go thru num of attributes
         for(int currAttr = 0; currAttr < numOfAttributes; currAttr++){
             int lenOfAttName = Integer.parseInt(catalog.get(currIndex));
             currIndex++;
