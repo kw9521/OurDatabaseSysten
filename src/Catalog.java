@@ -30,6 +30,33 @@ public class Catalog {
         return this.bufferSize;
     }
 
+    public List<Table> getTables(){
+        return this.tables;
+    }
+
+    public int getNextTableNumber(){
+        return 0;
+    }
+
+    public void addTable(){
+        // TODO
+    }
+
+
+    public void populateDict(){
+        dataTypes.put(0, "String");
+
+        // initially assume varchar is a char for now
+        // use the bitmap to differentiate between char and varchar
+        // 0 for char, 1 for varchar
+        dataTypes.put(1, "char");
+        dataTypes.put(2, "int");
+        dataTypes.put(3, "double");
+        dataTypes.put(4, "float");
+        dataTypes.put(5, "boolean");
+
+    }
+
     // catalog format: ["PS", 
     // "numOfTable", 
         // "Table1ID", "lengthOfTable1Name", "TableName1Char", "TableName1Char2", ..., "TableName1CharN"
@@ -62,14 +89,16 @@ public class Catalog {
 
     }
 
-    // go through tables
     // table constructor: Table(String name, int tableId, Attribute[] attributes, int[] pages)
     public void readTable(ArrayList<String> catalog, int currIndex){
+
+        // go through tables
         for (int i = 0; i < tableCount; i++){
 
             String tableName = "";
             int tableID;
-            Attribute[] attributes;
+            List<Attribute> attributes = new ArrayList<>();
+
             int[] pages;
 
 
@@ -90,51 +119,42 @@ public class Catalog {
             int numOfAttributes = Integer.parseInt(catalog.get(currIndex));
             currIndex++;
 
-            readAttribute(catalog, currIndex, numOfAttributes);
+            ArrayList<Attribute> x = readAttribute(catalog, currIndex, numOfAttributes);
 
 
         }
     }
 
-    // Attribute(String name, String type, boolean notNull, boolean primaryKey, boolean unique, int size)
     // "NumOfAttributeinTable1", 
-                // "Len of Att1 Name", "Att1 Name", "datatype", "bitmap is a string of 01s", 
-    public void readAttribute(ArrayList<String> catalog, int currIndex, int numOfAttributes){
+                // "Len of Att1 Name", "Att1 Name", "datatype", "bitmap is a string of 0s/1s", 
+    public ArrayList<Attribute> readAttribute(ArrayList<String> catalog, int currIndex, int numOfAttributes){
 
+        String attrName = "";
+        String dataTypeString;
+        ArrayList<Attribute> allAttributes = new ArrayList<>();;
+
+        // go thru num of  attributes
         for(int currAttr = 0; currAttr < numOfAttributes; currAttr++){
             int lenOfAttName = Integer.parseInt(catalog.get(currIndex));
+            currIndex++;
 
-            String attrName = "";
-            // go thru length of attribute name and keep adding to form a attribute name
+            // go thru length of attribute1's name and keep adding to form a attribute name
             for (int attrNameIndex = 0; attrNameIndex < lenOfAttName; attrNameIndex++){
                 String tabNameChar = catalog.get(currIndex);
                 currIndex++;
                 attrName += tabNameChar;
             }
             
-            int THEdataType = Integer.parseInt(catalog.get(currIndex));
-            currIndex++;
-
             // use a dict to differentiate if dataType is a char/string/int/etc
+            int intDataType = Integer.parseInt(catalog.get(currIndex));
+            currIndex++;
+            dataTypeString = dataTypes.get(intDataType);     
+            
+            String attributeStr = attrName + " " + dataTypeString;
+            allAttributes.add(Attribute.parse(attributeStr));
         }
+
+        return allAttributes;
     }
-
-    public void populateDict(){
-
-        dataTypes.put(0, "String");
-
-        // for char/varchar, use the bitmap to differentiate between char and varchar
-        // 0 for char, 1 for varchar
-        dataTypes.put(1, "char");
-        dataTypes.put(2, "int");
-        dataTypes.put(3, "double");
-        dataTypes.put(4, "float");
-
-
-
-
-
-    }
-
 
 }
