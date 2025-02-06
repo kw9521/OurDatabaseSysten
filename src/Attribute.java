@@ -66,6 +66,29 @@ public class Attribute {
         return this.size;
     }
 
+    public static Attribute parse(String attributes){
+        String[] tokens = attributes.split("\\s+");
+        String name = tokens[0];
+        String type = tokens[1];
+        int size = 0;
+        boolean notNull = attributes.contains("notnull");
+        boolean primaryKey = attributes.contains("primarykey");
+        boolean unique = attributes.contains("unique");
+
+        // Manage char / varchar sizes
+        if (type.startsWith("char") || type.startsWith("varchar")){
+            // removes everything except digits "char(255)" -> "255"
+            size = Integer.parseInt(type.replaceAll("[^0-9]", ""));
+            // removes everything inside and including parentheses "varchar(100)" -> "varchar"
+            type = type.replaceAll("\\(.*\\)", "");
+        }
+        else if (type.startsWith("integer")) size = Integer.BYTES;
+        else if (type.startsWith("double")) size = Double.BYTES;
+        else if (type.startsWith("boolean")) size = 1;
+
+        return new Attribute(name, type, notNull, primaryKey, unique, size);
+    }
+
     public void displayAttribute(){
         System.out.println(this.name);
         System.out.println(this.type);
