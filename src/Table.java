@@ -1,5 +1,5 @@
 // Table = collection of pages
-
+import java.util.ArrayList;
 import java.util.List;
 
 public class Table {
@@ -8,16 +8,16 @@ public class Table {
     private List<Attribute> attributes;
     private int attributesCount; 
     private int pageCount;
-    private int[] pages; // pageId
+    private List<Integer> pages; // pageId
 
-    public Table(String name, int tableID, int attributesCount, List<Attribute> attributes, int[] pages){
+    public Table(String name, int tableID, int attributesCount, List<Attribute> attributes){
         this.name = name;
         this.tableId = tableID;
         this.attributesCount = attributesCount;
         this.attributes = attributes;
 
         this.pageCount = 0;
-        this.pages = pages;
+        this.pages = new ArrayList<>();
     }
 
     // Implementing still...
@@ -28,7 +28,8 @@ public class Table {
     }
 
     public void dropPage(Page page){
-
+        // TODO
+        this.pageCount--;
     }
 
     public void addAttribute(Attribute attribute){
@@ -37,6 +38,10 @@ public class Table {
 
     public void dropAttribute(Attribute attribute){
 
+    }
+
+    public String getName(){
+        return this.name;
     }
 
     public void displayTable(){

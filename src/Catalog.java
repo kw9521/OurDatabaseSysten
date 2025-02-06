@@ -16,6 +16,8 @@ public class Catalog {
         this.dbLocation = dbLocation;
         this.pageSize = pageSize;
         this.bufferSize = bufferSize;
+        this.tables = new ArrayList<>();
+        this.tableCount = 0;
     }
 
     public String getDbLocation() {
@@ -35,13 +37,18 @@ public class Catalog {
     }
 
     public int getNextTableNumber(){
-        // TODO
+        return this.tables.size();
     }
 
-    public void addTable(){
-        // TODO
+    public void addTable(Table table){
+        this.tables.add(table);
+        this.tableCount++;
+        System.out.println("Added table: " + table.getName());
     }
 
+    public void dropTable(){
+        // TODO
+    }
 
     public void populateDict(){
         dataTypes.put(0, "String");
@@ -110,7 +117,6 @@ public class Catalog {
 
 
             // go thru length of table name and keep adding to form a tableName
-            for (int tabNameIndex = 0; tabNameIndex < lengthOfTableName; tabNameIndex++) {
             for (int tabNameIndex = 0; tabNameIndex < lengthOfTableName; tabNameIndex++) {
                 String tabNameChar = catalog.get(currIndex);
                 currIndex++;

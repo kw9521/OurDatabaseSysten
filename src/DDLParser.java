@@ -129,10 +129,10 @@ private static void createTable(String inputLine, Catalog catalog) {
 
     // Create and add table to catalog  NEED getNextTableNumber() + addTable()
     Table newTable = new Table(
-        attributes.size(),
         tableName,
         catalog.getNextTableNumber(),
-        attributes.toArray(new Attribute[0])
+        attributes.size(),
+        attributes
     );
     catalog.addTable(newTable);
 
