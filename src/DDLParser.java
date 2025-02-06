@@ -66,7 +66,7 @@ public class DDLParser {
     //     bazzle char(10) unique notnull
     // );
 
-private static void handleCreateCommand(String inputLine, Catalog catalog) {
+private static void createTable(String inputLine, Catalog catalog) {
     String[] parts = inputLine.split("\\s+", 3);
     
     // Validate command structure

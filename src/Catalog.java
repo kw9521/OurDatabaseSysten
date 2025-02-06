@@ -108,7 +108,9 @@ public class Catalog {
             int lengthOfTableName = Integer.parseInt(catalog.get(currIndex));
             currIndex++;
 
+
             // go thru length of table name and keep adding to form a tableName
+            for (int tabNameIndex = 0; tabNameIndex < lengthOfTableName; tabNameIndex++) {
             for (int tabNameIndex = 0; tabNameIndex < lengthOfTableName; tabNameIndex++) {
                 String tabNameChar = catalog.get(currIndex);
                 currIndex++;
