@@ -37,12 +37,20 @@ public class Page {
         this.currentSize -= record.getSize();
     }
 
+    public List<Record> getRecords(){
+        return records;
+    }
+
     public int getRecordCount(){
         return recordCount;
     }
 
-    public List<Record> getRecords(){
-        return records;
+    public int getPageId(){
+        return pageId;
+    }
+
+    public int getTableId(){
+        return tableId;
     }
 
     public byte[] toBinary(Table table){
