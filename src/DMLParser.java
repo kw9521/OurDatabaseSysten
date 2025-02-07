@@ -40,7 +40,7 @@ public class DMLParser {
                         if (tokens[1].startsWith("schema")) {
                             displaySchema(normalizedStatement, catalog);
                         } else if (tokens[1].startsWith("info")) {
-                            displayInfo(normalizedStatement);
+                            displayInfo(normalizedStatement, catalog);
                         } else {
                             throw new DMLParserException("Invalid display syntax: " + statement);
                         }
@@ -70,51 +70,82 @@ public class DMLParser {
         System.out.println("Inserting into table...");
     }
 
-private static void displaySchema(String normalizedStatement, Catalog catalog) {
-    System.out.println("\nDB Location: " + catalog.getDbLocation());
-    System.out.println("Page Size: " + catalog.getPageSize());
-    System.out.println("Buffer Size: " + catalog.getBufferSize() + "\n");
+    private static void displaySchema(String normalizedStatement, Catalog catalog) {
+        System.out.println("\nDB Location: " + catalog.getDbLocation());
+        System.out.println("Page Size: " + catalog.getPageSize());
+        System.out.println("Buffer Size: " + catalog.getBufferSize() + "\n");
 
-    List<Table> tables = catalog.getTables();
-    if (tables == null || tables.isEmpty()) {
-        System.out.println("No tables to display.\n");
-        System.out.println("SUCCESS");
-        return;
-    }
-
-    System.out.println("Tables:\n");
-    for (Table table : tables) {
-        System.out.println("Table Name: " + table.getName());
-        System.out.println("Table Schema:");
-
-        for (Attribute attr : table.getAttributes()) {
-            StringBuilder attributeDetails = new StringBuilder();
-            attributeDetails.append("    ").append(attr.getName()).append(":").append(attr.getType());
-
-            if (attr.isPrimaryKey()) attributeDetails.append(" primarykey");
-            if (attr.isUnique()) attributeDetails.append(" unique");
-            if (attr.isNullable()) attributeDetails.append(" notnull");
-
-            System.out.println(attributeDetails);
+        List<Table> tables = catalog.getTables();
+        if (tables == null || tables.isEmpty()) {
+            System.out.println("No tables to display.\n");
+            System.out.println("SUCCESS");
+            return;
         }
 
-        System.out.println("Pages: " + table.getPageCount());
-        System.out.println("Records: " + table.getRecordCount() + "\n");
+        System.out.println("Tables:\n");
+        for (Table table : tables) {
+            System.out.println("Table Name: " + table.getName());
+            System.out.println("Table Schema:");
+
+            for (Attribute attr : table.getAttributes()) {
+                StringBuilder attributeDetails = new StringBuilder();
+                attributeDetails.append("    ").append(attr.getName()).append(":").append(attr.getType());
+
+                if (attr.isPrimaryKey()) attributeDetails.append(" primarykey");
+                if (attr.isUnique()) attributeDetails.append(" unique");
+                if (attr.isNullable()) attributeDetails.append(" notnull");
+
+                System.out.println(attributeDetails);
+            }
+
+            System.out.println("Pages: " + table.getPageCount());
+            System.out.println("Records: " + table.getRecordCount() + "\n");
+        }
+
+        System.out.println("SUCCESS");
     }
 
-    System.out.println("SUCCESS");
-}
-
-
-    private void displayInfo(String statement) {
-        // Implement
-        // - table name
-        // - table schema
-        // - number of pages
-        // - number of records
-        // BASICALLY SAME AS ABOVE BUT SHORTER
-        System.out.println("Table name:");
-    }
+    private static void displayInfo(String normalizedStatement, Catalog catalog) {
+        String[] parts = normalizedStatement.split(" ");
+        if (parts.length < 3) {
+            System.out.println("Invalid command format.");
+            return;
+        }
+        
+        String tableName = parts[2];
+        
+        List<Table> tables = catalog.getTables();
+        if (tables == null || tables.isEmpty()) {
+            System.out.println("Table" + tableName + "not found.");
+            return;
+        }
+    
+        for (Table table : tables) {
+            if (table.getName().equalsIgnoreCase(tableName)) {
+                System.out.println("Table Name: " + table.getName());
+                System.out.println("Table Schema:");
+    
+                for (Attribute attr : table.getAttributes()) {
+                    StringBuilder attributeDetails = new StringBuilder();
+                    attributeDetails.append("    ").append(attr.getName()).append(":").append(attr.getType());
+    
+                    if (attr.isPrimaryKey()) attributeDetails.append(" primarykey");
+                    if (attr.isUnique()) attributeDetails.append(" unique");
+                    if (attr.isNullable()) attributeDetails.append(" notnull");
+    
+                    System.out.println(attributeDetails);
+                }
+    
+                System.out.println("Pages: " + table.getPageCount());
+                System.out.println("Records: " + table.getRecordCount());
+                System.out.println("SUCCESS");
+                return;
+            }
+        }
+        
+        System.out.println("No such table " + tableName);
+        System.out.println("ERROR");
+    }    
 
     private void select(String statement) {
         // Implement

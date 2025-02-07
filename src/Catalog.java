@@ -36,7 +36,7 @@ public class Catalog {
         return this.tables;
     }
 
-    public int getNextTableNumber(){
+    public int getNextTableID(){
         return this.tables.size();
     }
 
@@ -106,7 +106,7 @@ public class Catalog {
 
             String tableName = "";
             int tableID;
-            int[] pages;
+            //int[] pages;
 
             tableID = Integer.parseInt(catalog.get(currIndex));
             currIndex++;
@@ -125,11 +125,11 @@ public class Catalog {
             int numOfAttributes = Integer.parseInt(catalog.get(currIndex));
             currIndex++;
 
-            List<Attribute> allOfTbleAttributes = readAttribute(catalog, currIndex, numOfAttributes);
+            List<Attribute> tableAttributes = readAttribute(catalog, currIndex, numOfAttributes);
             
 
             // NEED TO DO: Pass a  valid int[] page in
-            Table table = new Table(tableName, tableID, numOfAttributes, allOfTbleAttributes, pages);
+            Table table = new Table(tableName, tableID, numOfAttributes, tableAttributes);
             addTable(table);
         }
     }

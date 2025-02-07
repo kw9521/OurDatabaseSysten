@@ -127,10 +127,10 @@ private static void createTable(String inputLine, Catalog catalog) {
         return;
     }
 
-    // Create and add table to catalog  NEED getNextTableNumber() + addTable()
+    // Create and add table to catalog
     Table newTable = new Table(
         tableName,
-        catalog.getNextTableNumber(),
+        catalog.getNextTableID(),
         attributes.size(),
         attributes
     );
