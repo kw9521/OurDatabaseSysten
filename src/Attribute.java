@@ -1,5 +1,8 @@
 // Attributes used in table
 
+import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
+
 public class Attribute {
     private String name; // Names can start with a alpha-character and contain alphanumeric characters.
     private String type; // Attribute types can only be integer, double, boolean, char(x), and varchar(x)
@@ -94,4 +97,39 @@ public class Attribute {
         System.out.println(this.type);
         System.out.println("Constraints...");
     }
+
+    public void writeToBuffer(ByteBuffer buffer) {
+        byte[] nameBytes = this.name.getBytes(StandardCharsets.UTF_8);
+        buffer.putInt(nameBytes.length);
+        buffer.put(nameBytes);
+        
+        byte[] typeBytes = this.type.getBytes(StandardCharsets.UTF_8);
+        buffer.putInt(typeBytes.length);
+        buffer.put(typeBytes);
+        
+        buffer.put((byte) (this.isNullable ? 1 : 0));
+        buffer.put((byte) (this.primaryKey ? 1 : 0));
+        buffer.put((byte) (this.unique ? 1 : 0));
+        buffer.putInt(this.size);
+    }
+
+    public static Attribute readFromBuffer(ByteBuffer buffer) {
+        int nameLength = buffer.getInt();
+        byte[] nameBytes = new byte[nameLength];
+        buffer.get(nameBytes);
+        String name = new String(nameBytes, StandardCharsets.UTF_8);
+        
+        int typeLength = buffer.getInt();
+        byte[] typeBytes = new byte[typeLength];
+        buffer.get(typeBytes);
+        String type = new String(typeBytes, StandardCharsets.UTF_8);
+        
+        boolean nonNull = buffer.get() == 1;
+        boolean unique = buffer.get() == 1;
+        boolean primaryKey = buffer.get() == 1;
+        int size = buffer.getInt();
+        
+        return new Attribute(name, type, unique, nonNull, primaryKey, size);
+    }
+
 }

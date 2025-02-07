@@ -1,6 +1,8 @@
 // Table = collection of pages
 import java.util.ArrayList;
 import java.util.List;
+import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
 
 public class Table {
     private String name;
@@ -60,17 +62,52 @@ public class Table {
         return 0;
     }
     
-
     public void displayTable(){
         System.out.println("Table name: Gian (test)");
         System.out.println("Table schema: ");
         // for loop to call attributes.displayAttributes()
     }
 
-    // function that storage manager calls to convert info to bytes
-    // can move this around to diff file later
-    public void convertToByte(){
+    // Experimenting with ByteBuffer, might not work
+    public void writeToBuffer(ByteBuffer buffer) {
+        buffer.putInt(this.attributesCount);
+        byte[] nameBytes = this.name.getBytes(StandardCharsets.UTF_8);
+        buffer.putInt(nameBytes.length);
+        buffer.put(nameBytes);
+        buffer.putInt(this.tableId);
+        buffer.putInt(this.pageCount);
+        
+        for (Attribute attr : this.attributes) {
+            attr.writeToBuffer(buffer);
+        }
+        
+        for (int location : this.pages) {
+            buffer.putInt(location);
+        }
+    }
 
+    public static Table readFromBuffer(ByteBuffer buffer) {
+        int attributesCount = buffer.getInt();
+        int nameLength = buffer.getInt();
+        byte[] nameBytes = new byte[nameLength];
+        buffer.get(nameBytes);
+        String name = new String(nameBytes, StandardCharsets.UTF_8);
+        int tableNumber = buffer.getInt();
+        int numPages = buffer.getInt();
+        List<Attribute> attributes = new ArrayList<>();
+        
+        for (int i = 0; i < attributesCount; i++) {
+            attributes.add(Attribute.readFromBuffer(buffer));
+        }
+        
+        Table table = new Table(name, tableNumber, attributesCount, attributes);
+        table.pageCount = numPages;
+        
+        for (int i = 0; i < numPages; i++) {
+            table.pages.add(buffer.getInt());
+        }
+        
+        return table;
     }
 
 }

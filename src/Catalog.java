@@ -1,3 +1,7 @@
+import java.io.IOException;
+import java.nio.ByteBuffer;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Dictionary;
@@ -89,7 +93,7 @@ public class Catalog {
 
         // use as pointer to go thru arraylist
         int currIndex = 2;
-        readTable(catalog, currIndex);
+        // readTable(catalog, currIndex);
 
     }
 
@@ -100,37 +104,27 @@ public class Catalog {
      * @param catalog
      * @param currIndex
      */
-    public void readTable(ArrayList<String> catalog, int currIndex){
-        // go through tables
-        for (int i = 0; i < tableCount; i++){
 
-            String tableName = "";
-            int tableID;
-            //int[] pages;
+    // Note: For each table in catalog, call Table.write/readToBuffer
 
-            tableID = Integer.parseInt(catalog.get(currIndex));
-            currIndex++;
+    public void writeCatalogToFile(String pathname, ByteBuffer buffer) throws IOException {
+        buffer.putInt(this.tableCount);
+        for (Table table : this.tables) {
+            table.writeToBuffer(buffer);
+        }
+        Files.write(Paths.get(pathname), buffer.array());
+    }
 
-            int lengthOfTableName = Integer.parseInt(catalog.get(currIndex));
-            currIndex++;
-
-
-            // go thru length of table name and keep adding to form a tableName
-            for (int tabNameIndex = 0; tabNameIndex < lengthOfTableName; tabNameIndex++) {
-                String tabNameChar = catalog.get(currIndex);
-                currIndex++;
-                tableName += tabNameChar;
-            }
-
-            int numOfAttributes = Integer.parseInt(catalog.get(currIndex));
-            currIndex++;
-
-            List<Attribute> tableAttributes = readAttribute(catalog, currIndex, numOfAttributes);
-            
-
-            // NEED TO DO: Pass a  valid int[] page in
-            Table table = new Table(tableName, tableID, numOfAttributes, tableAttributes);
-            addTable(table);
+    public void readCatalogFromFile(String pathname, ByteBuffer buffer) throws IOException {
+        byte[] fileBytes = Files.readAllBytes(Paths.get(pathname));
+        buffer.put(fileBytes);
+        buffer.flip(); // Prepare for reading
+        
+        this.tableCount = buffer.getInt();
+        this.tables.clear();
+        for (int i = 0; i < this.tableCount; i++) {
+            Table table = Table.readFromBuffer(buffer);
+            this.tables.add(table);
         }
     }
 
@@ -143,6 +137,9 @@ public class Catalog {
      * @param numOfAttributes  # of attributes to read
      * @return allAttributes: an arraylist of all the attributes associated with this table
      */
+
+    // Note: Attribute.readFromBuffer
+
     public ArrayList<Attribute> readAttribute(ArrayList<String> catalog, int currIndex, int numOfAttributes){
 
         String attrName = "";
