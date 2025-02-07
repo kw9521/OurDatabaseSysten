@@ -106,7 +106,6 @@ public class Catalog {
 
             String tableName = "";
             int tableID;
-            List<Attribute> attributes = new ArrayList<>();
             int[] pages;
 
             tableID = Integer.parseInt(catalog.get(currIndex));
@@ -128,9 +127,10 @@ public class Catalog {
 
             List<Attribute> allOfTbleAttributes = readAttribute(catalog, currIndex, numOfAttributes);
             
-            // TODO:
-            // create a tabe, add it into List<Table> tables
-            // Table(String name, int tableID, int attributesCount, List<Attribute> attributes, int[] pages)
+
+            // NEED TO DO: Pass a  valid int[] page in
+            Table table = new Table(tableName, tableID, numOfAttributes, allOfTbleAttributes, pages);
+            addTable(table);
         }
     }
 
