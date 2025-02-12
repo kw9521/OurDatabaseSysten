@@ -57,6 +57,10 @@ public class Table {
     public int getTableID(){
         return this.tableId;
     }
+
+    public void setTableID(int newtableID){
+        this.tableId = newtableID;
+    }
     
     public int getRecordCount() {
         if (pages == null || pages.isEmpty()) {
