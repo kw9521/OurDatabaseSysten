@@ -53,6 +53,10 @@ public class Table {
     public int getPageCount(){
         return this.pageCount;
     }
+
+    public int getTableID(){
+        return this.tableId;
+    }
     
     public int getRecordCount() {
         if (pages == null || pages.isEmpty()) {
