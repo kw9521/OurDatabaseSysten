@@ -15,6 +15,11 @@ public class PageBuffer {
         PageKey key = new PageKey(page.getTableId(), pageId);
         pages.put(key, page);
     }
+
+    public void removePage(int tableId, int pageId) {
+        PageKey key = new PageKey(tableId, pageId);
+        pages.remove(key);
+    }
     
     public Page getPage(int tableId, int pageId) {
         PageKey key = new PageKey(tableId, pageId);

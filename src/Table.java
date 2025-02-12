@@ -30,16 +30,19 @@ public class Table {
     }
 
     public void dropPage(Page page){
-        // TODO
+        PageBuffer buffer = Main.getBuffer();
+        buffer.removePage(page.getTableId(), page.getPageId());
         this.pageCount--;
     }
 
     public void addAttribute(Attribute attribute){
-
+        this.attributes.add(attribute);
+        this.attributesCount++;
     }
 
     public void dropAttribute(Attribute attribute){
-
+        this.attributes.remove(attribute);
+        this.attributesCount--;
     }
 
     public String getName(){
