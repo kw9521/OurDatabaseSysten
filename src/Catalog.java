@@ -50,9 +50,30 @@ public class Catalog {
         System.out.println("Added table: " + table.getName());
     }
 
-    public void dropTable(){
-        // TODO
+    /**
+     * Look at droppedTable's tableID. Move every other table's tableID to be 1 less if their curr 
+     * tableID is bigger than droppedTable's ID. 
+     *      Eg: if DroppedTable is 3 then Tables4+ will be moved down
+     * Also gets rid of the empty space after table has been dropped
+     * @param droppedTab
+     */
+    public void dropTable(Table droppedTab) {
+        int id = droppedTab.getTableID();
+        
+        // remove the table from the list
+        // by using .remove(): the elements to the right of the removed element are 
+        // automatically shifted one position to the left (towards index 0) to fill the gap
+        tables.remove(droppedTab);
+    
+        // update the table IDs for tables that had a higher ID than the dropped table
+        for (Table tab : tables) {
+            if (tab.getTableID() > id) {
+                tab.setTableID(tab.getTableID() - 1);
+            }
+        }
     }
+    
+
 
     public void populateDict(){
         dataTypes.put(0, "String");
