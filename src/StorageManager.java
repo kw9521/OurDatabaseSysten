@@ -23,4 +23,8 @@ public class StorageManager {
     }
 
     // Function to load from disk
+
+    public void writePageToDisk(Page page){
+        // Takes in a page object, and writes it to disk
+    }
 }
