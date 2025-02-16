@@ -53,7 +53,7 @@ public class Page {
         return tableId;
     }
 
-    public byte[] toBinary(Table table){
+    public byte[] toBinary(){
         ByteBuffer data = ByteBuffer.allocate(Main.getPageSize());
         data.putInt(getRecordCount());
 
