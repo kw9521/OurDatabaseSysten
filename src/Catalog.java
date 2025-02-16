@@ -191,4 +191,14 @@ public class Catalog {
         return allAttributes;
     }
 
+    // Get the table from the tableID
+    public Table getTable(int tableID){
+        for(Table table : this.tables){
+            if(table.getTableID() == tableID){
+                return table;
+            }
+        }
+        return null; //Return Null if table doesn't exist
+    }
+
 }
