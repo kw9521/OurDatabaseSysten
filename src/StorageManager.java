@@ -1,4 +1,5 @@
 import java.util.ArrayList;
+import java.util.List;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -14,18 +15,97 @@ public class StorageManager {
         this.buffer = buffer;
     }
 
-    // Implement...
-    public ArrayList<ArrayList<Object>> getRecords(int tableNumber) {
-        ArrayList<ArrayList<Object>> tuples = new ArrayList<>();
+    // Returns a list of tuples (each tuple is a list of objects)
+    public List<List<Object>> getRecords(int tableNumber) {
+        List<Page> pages = loadPages(tableNumber);
+        List<List<Object>> tuples = new ArrayList<>();
 
-        // Iterate through all pages in the table
-
-            // Retrieve the page from the buffer or load from disk if not in the buffer
-
-        // If the page is valid, retrieve its records and add their data to tuples
-
+        for (Page page : pages) {
+            for (Record record : page.getRecords()) {
+                tuples.add(record.getData());
+            }
+        }
         return tuples;
     }
+
+    // Returns all pages for a given table number
+    public List<Page> getPages(int tableNumber) {
+        return loadPages(tableNumber);
+    }
+
+    // Retrieves a page: checks buffer first, then loads from disk if missing
+    public Page getPage(int tableNumber, int pageNumber) {
+        Page page = buffer.getPage(tableNumber, pageNumber);
+        
+        if (page == null) { // Page not in buffer, load from disk
+            page = loadPageFromDisk(tableNumber, pageNumber);
+        }
+        
+        return page;
+    }
+
+    // Helper method to load pages from buffer or file
+    private List<Page> loadPages(int tableNumber) {
+        Table table = catalog.getTable(tableNumber);
+        List<Page> pages = new ArrayList<>();
+
+        for (int i = 0; i < table.getPageCount(); i++) {
+            pages.add(buffer.inBuffer(tableNumber, i) ? 
+                    buffer.getPage(tableNumber, i) : 
+                    getPage(tableNumber, i));
+        }
+        return pages;
+    }
+
+    // Splits a page into two when it exceeds capacity
+    public Record splitPage(Page page) {
+        int totalRecords = page.getRecordCount();
+        int midIndex = totalRecords / 2;
+
+        // Extract first and second halves efficiently
+        List<Record> firstHalf = new ArrayList<>(page.getRecords().subList(0, midIndex));
+        List<Record> secondHalf = new ArrayList<>(page.getRecords().subList(midIndex, totalRecords));
+
+        // First record of the new page (important for maintaining order)
+        Record firstRecInNewPage = secondHalf.get(0);
+
+        // Calculate new sizes (accounting for numRecords integer)
+        int firstPageSize = 4 + firstHalf.stream().mapToInt(Record::getSize).sum();
+        int secondPageSize = 4 + secondHalf.stream().mapToInt(Record::getSize).sum();
+
+        // Create new page
+        Page newPage = new Page(page.getPageId() + 1, page.getTableId());
+        newPage.setRecords(new ArrayList<>(secondHalf));
+        newPage.setRecordCount(secondHalf.size());
+        newPage.setSize(secondPageSize);
+
+        // Update original page
+        page.setRecords(new ArrayList<>(firstHalf));
+        page.setRecordCount(firstHalf.size());
+        page.setSize(firstPageSize);
+
+        // Update catalog and buffer
+        catalog.getTable(page.getTableId()).addPage(newPage);
+        buffer.updatePage(page);
+
+        // Adjust page numbers in the buffer (shift pages forward)
+        Table table = catalog.getTable(page.getTableId());
+        for (int i = newPage.getPageId(); i < table.getPageCount(); i++) {
+            Page bufferPage = buffer.getPage(page.getTableId(), i);
+            bufferPage.setPageId(i + 1);
+            buffer.updatePage(bufferPage);
+        }
+
+        // Handle potential recursive splits if overfull
+        if (page.isOverfull()) splitPage(page);
+        else buffer.updatePage(page);
+
+        if (newPage.isOverfull()) splitPage(newPage);
+        else buffer.addPage(newPage.getPageId(), newPage);
+
+        return firstRecInNewPage;
+    }
+
 
     // Function to load from disk
 

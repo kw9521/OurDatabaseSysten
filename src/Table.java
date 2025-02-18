@@ -40,10 +40,16 @@ public class Table {
         this.attributesCount++;
     }
 
-    public void dropAttribute(Attribute attribute){
-        this.attributes.remove(attribute);
-        this.attributesCount--;
-    }
+    public void dropAttribute(String attrName) {
+        boolean removed = attributes.removeIf(attr -> attr.getName().equals(attrName));
+        
+        if (removed) {
+            attributesCount--;
+            System.out.println("Attribute " + attrName + " removed from table " + this.name);
+        } else {
+            System.out.println("Attribute " + attrName + " not found in table " + this.name);
+        }
+    }    
 
     public String getName(){
         return this.name;

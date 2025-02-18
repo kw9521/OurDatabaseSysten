@@ -12,6 +12,8 @@ public class Attribute {
     private boolean unique;
     private int size;
 
+    private Object defaultValue;
+
     public Attribute(String name, String type, boolean isNullable, boolean primaryKey, boolean unique, int size){
         this.name = name;
         this.type = type;
@@ -19,6 +21,7 @@ public class Attribute {
         this.primaryKey = primaryKey;
         this.unique = unique;
         this.size = size;
+        this.defaultValue = null;
     }
 
     public void setName(String name){
@@ -67,6 +70,14 @@ public class Attribute {
 
     public int getSize(){
         return this.size;
+    }
+
+    public void setDefaultValue(Object defaultValue){
+        this.defaultValue = defaultValue;
+    }
+
+    public Object getDefaultValue(){
+        return this.defaultValue;
     }
 
     public static Attribute parse(String attributes){

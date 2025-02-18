@@ -58,6 +58,7 @@ public class Catalog {
      * @param droppedTab
      */
     public void dropTable(Table droppedTab) {
+        // Use below method maybe?
         int id = droppedTab.getTableID();
         
         // remove the table from the list
@@ -73,7 +74,10 @@ public class Catalog {
         }
     }
     
-
+    public Table getTableByName(String tableName) {
+        return this.tables.stream()
+            .filter(table -> table.getName().equals(tableName)).findFirst().orElse(null);
+    }
 
     public void populateDict(){
         dataTypes.put(0, "String");
