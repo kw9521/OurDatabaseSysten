@@ -121,7 +121,7 @@ public class Attribute {
         buffer.put((byte) (this.isNullable ? 1 : 0));
         buffer.put((byte) (this.primaryKey ? 1 : 0));
         buffer.put((byte) (this.unique ? 1 : 0));
-        buffer.putInt(this.size);
+        // buffer.putInt(this.size); Not needed for now may add back later
     }
 
     public static Attribute readFromBuffer(ByteBuffer buffer) {
@@ -141,6 +141,20 @@ public class Attribute {
         int size = buffer.getInt();
         
         return new Attribute(name, type, unique, nonNull, primaryKey, size);
+    }
+
+    public int calcByteSize(){
+        int totalSize = 0;
+        byte[] nameBytes = this.name.getBytes(StandardCharsets.UTF_8);
+        totalSize += nameBytes.length;
+        totalSize += 4; //For the int length of the string
+        
+        byte[] typeBytes = this.type.getBytes(StandardCharsets.UTF_8);
+        totalSize += typeBytes.length;
+        totalSize += 4; //For the int length of the string
+        
+        totalSize += 3; //For the 3 boolean values
+        return totalSize;
     }
 
 }

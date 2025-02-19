@@ -30,8 +30,8 @@ public class Main {
 
         // Create our stuff
         catalog = new Catalog(dbLocation, pageSize, bufferSize);
-        buffer = new PageBuffer(bufferSize);
-        storageManager = new StorageManager(catalog, buffer); // idk what this needs either
+        // buffer = new PageBuffer(bufferSize);
+        storageManager = new StorageManager(dbLocation, catalog, buffer); // idk what this needs either
 
         // Initialize parsers
         ddlParser = new DDLParser();
@@ -44,7 +44,11 @@ public class Main {
         File dbFolder = new File(dbLocation);
 
         if (dbFolder.exists() && dbFolder.isDirectory()) {
-            System.out.println("Existing db found at " + dbLocation);
+            File catalogFile = new File(dbFolder, "catalog.bin");
+            if(catalogFile.exists()){
+                System.out.println("Existing db found at " + dbLocation);
+                storageManager.loadCatalog(catalog);
+            }
         } else {
             System.out.println("No existing db found");
             System.out.println("Creating new db at " + dbLocation);
@@ -66,6 +70,7 @@ public class Main {
         
                 if (inputLine == null || inputLine.trim().equalsIgnoreCase("quit")) {
                     // IMPLEMENT
+                    storageManager.writeCatalogToFile(catalog);
                     break;
                 }
         

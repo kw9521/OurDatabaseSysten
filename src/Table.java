@@ -87,20 +87,21 @@ public class Table {
 
     // Experimenting with ByteBuffer, might not work
     public void writeToBuffer(ByteBuffer buffer) {
-        buffer.putInt(this.attributesCount);
+        buffer.putInt(this.tableId);
         byte[] nameBytes = this.name.getBytes(StandardCharsets.UTF_8);
         buffer.putInt(nameBytes.length);
         buffer.put(nameBytes);
-        buffer.putInt(this.tableId);
-        buffer.putInt(this.pageCount);
+        buffer.putInt(this.attributesCount);
+        // buffer.putInt(this.pageCount); // Not sure if this is currently needed may add back later
         
         for (Attribute attr : this.attributes) {
             attr.writeToBuffer(buffer);
         }
         
-        for (int location : this.pages) {
-            buffer.putInt(location);
-        }
+        // Not sure if this is needed may add back later
+        // for (int location : this.pages) {
+        //     buffer.putInt(location);
+        // }
     }
 
     public static Table readFromBuffer(ByteBuffer buffer) {
@@ -125,6 +126,21 @@ public class Table {
         }
         
         return table;
+    }
+
+    public int calcByteSize(){
+        int totalSize = 0;
+        totalSize += 4; //For the ID int
+        byte[] nameBytes = this.name.getBytes(StandardCharsets.UTF_8);
+        totalSize += nameBytes.length;
+        totalSize += 4; //For the int length of the string
+        totalSize += 4; //Size to allocate for number of attribute stored
+
+        for(Attribute attr : this.attributes){
+            totalSize += attr.calcByteSize();
+        }
+
+        return totalSize;
     }
 
 }

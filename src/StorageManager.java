@@ -1,16 +1,21 @@
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.RandomAccessFile;
+import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
+import java.nio.charset.StandardCharsets;
 
 public class StorageManager {
+    private String dblocation;
     private Catalog catalog;
     private PageBuffer buffer;
 
-    public StorageManager(Catalog catalog, PageBuffer buffer){
+    public StorageManager(String dblocation, Catalog catalog, PageBuffer buffer){
+        this.dblocation = dblocation;
         this.catalog = catalog;
         this.buffer = buffer;
     }
@@ -142,6 +147,115 @@ public class StorageManager {
             System.out.println("File copied successfully.");
         } catch (IOException e) {
             e.printStackTrace();
+        }
+    }
+
+    // Write the catalog object stored in memory to the .bin file
+    public void writeCatalogToFile(Catalog catalog){
+        ByteBuffer buffer = ByteBuffer.allocate(catalog.calcByteSize());
+        try{
+            catalog.writeCatalogToBuffer(buffer);
+        }
+        catch(Exception e){
+            System.out.println("writeCatalogToFile error");
+            System.out.println(e);
+        }
+
+        // File path
+        String filePath = this.dblocation + "/catalog.bin";
+
+        try (RandomAccessFile raf = new RandomAccessFile(filePath, "rw")) {
+            raf.setLength(0);
+            // Write the byte array to the file
+            raf.write(buffer.array());
+        } catch (IOException e) {
+            System.err.println("Error writing file: " + e.getMessage());
+        }
+    }
+
+    // Load the catalog scheme from the .bin file
+    public void loadCatalog(Catalog catalog){
+        // File path
+        String filePath = this.dblocation + "/catalog.bin";
+
+        try (RandomAccessFile raf = new RandomAccessFile(filePath, "r")) {
+            // Determine the file size
+            int fileLength = (int) raf.length();
+
+            // Create a byte array to hold the file data
+            byte[] data = new byte[fileLength];
+
+            // Read data into the byte array
+            raf.readFully(data);
+
+            if(data.length != 0){
+                // Convert first 4 bytes to an int to get number of tables and set offset
+                int numOfTables = ByteBuffer.wrap(data, 0, 4).getInt();
+                System.out.println("Number of tables: " + numOfTables);
+                int offset = 4;
+
+                for(int i = 0; i < numOfTables; i++){
+                    // Check the next 4 bytes to get table ID
+                    int tableID = ByteBuffer.wrap(data, offset, 4).getInt();
+                    offset += 4;
+                    
+                    // Get length of table name string
+                    int tableNameLength = ByteBuffer.wrap(data, offset, 4).getInt();
+                    offset += 4;
+
+                    // Get the table name 
+                    byte[] tableNameBytes = Arrays.copyOfRange(data, offset, offset + tableNameLength);
+                    String tableName = new String(tableNameBytes, StandardCharsets.UTF_8);
+                    offset += tableNameLength;
+
+                    // Get the number of attributes in the table
+                    int numOfAttributes = ByteBuffer.wrap(data, offset, 4).getInt();
+                    offset += 4;
+
+                    List<Attribute> attributes = new ArrayList<>();
+                    for(int j = 0; j < numOfAttributes; j++){
+                        // Get the length of the attribute name
+                        int attributeNameLength = ByteBuffer.wrap(data, offset, 4).getInt();
+                        offset += 4;
+
+                        // Get the string attribute name
+                        byte[] attributeNameBytes = Arrays.copyOfRange(data, offset, offset + attributeNameLength);
+                        String attributeName = new String(attributeNameBytes, StandardCharsets.UTF_8);
+                        offset += attributeNameLength;
+
+                        // Get the type name length
+                        int typeNameLength = ByteBuffer.wrap(data, offset, 4).getInt();
+                        offset += 4;
+
+                        // Get the tpye name as a string
+                        byte[] typeNameBytes = Arrays.copyOfRange(data, offset, offset + typeNameLength);
+                        String typeName = new String(typeNameBytes, StandardCharsets.UTF_8);
+                        offset += typeNameLength;
+
+                        // Get the isnullable boolean
+                        boolean isNullable = data[offset] == 1;
+                        offset += 1;
+
+                        // Get the isprimary boolean
+                        boolean isPrimary = data[offset] == 1;
+                        offset += 1;
+
+                        // Get the isunique boolean
+                        boolean isUnique = data[offset] == 1;
+                        offset += 1;
+
+                        // Create the attribute object
+                        Attribute attr = new Attribute(attributeName, typeName, isNullable, isPrimary, isUnique, 0);
+                        attributes.add(attr);
+                    }
+
+                    // Create the table object and add it to the catalog
+                    Table table = new Table(tableName, tableID, attributes.size(), attributes);
+                    catalog.addTable(table);
+                }
+            }
+        } catch (IOException e) {
+            System.err.println("Error reading file: " + e.getMessage());
         }
     }
 }

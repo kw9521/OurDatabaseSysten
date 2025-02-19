@@ -132,12 +132,11 @@ public class Catalog {
 
     // Note: For each table in catalog, call Table.write/readToBuffer
 
-    public void writeCatalogToFile(String pathname, ByteBuffer buffer) throws IOException {
+    public void writeCatalogToBuffer(ByteBuffer buffer) throws IOException {
         buffer.putInt(this.tableCount);
         for (Table table : this.tables) {
             table.writeToBuffer(buffer);
         }
-        Files.write(Paths.get(pathname), buffer.array());
     }
 
     public void readCatalogFromFile(String pathname, ByteBuffer buffer) throws IOException {
@@ -203,6 +202,15 @@ public class Catalog {
             }
         }
         return null; //Return Null if table doesn't exist
+    }
+
+    public int calcByteSize(){
+        int totalSize = 0;
+        totalSize += 4; //Allocate size to store table count
+        for(Table table : this.tables){
+            totalSize += table.calcByteSize();
+        }
+        return totalSize;
     }
 
 }
