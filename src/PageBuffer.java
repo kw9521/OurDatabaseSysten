@@ -1,77 +1,101 @@
+import java.io.IOException;
+import java.io.RandomAccessFile;
+import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
 public class PageBuffer {
-    private int bufferSize;  // Total size of the buffer in pages
-    record PageKey(int tableID, int PageID) {} // or use Map.Entry???
+    private final int capacity;
     private final LinkedHashMap<PageKey, Page> pages;
-    private final HashSet<PageKey> modifiedPages = new HashSet<>();
 
-    private StorageManager StorageManager;
-
-    public PageBuffer(int bufferSize, StorageManager inputSM){
-        this.bufferSize = bufferSize;
-        this.pages = new LinkedHashMap<>();
-        this.StorageManager = inputSM;
+    public PageBuffer(int capacity) {
+        this.capacity = capacity;
+        this.pages = new LinkedHashMap<>() {
+            @Override
+            protected boolean removeEldestEntry(Map.Entry<PageKey, Page> eldest) {
+                if (size() > PageBuffer.this.capacity) {
+                    writePageToHardware(eldest.getValue());
+                    return true;
+                }
+                return false;
+            }
+        };
     }
 
-    public void addPage(int pageId, Page page) {
-        PageKey key = new PageKey(page.getTableId(), pageId);
+    public void addPage(int pageNumber, Page page) {
+        pages.put(new PageKey(page.getTableId(), pageNumber), page);
+    }
+
+    public Page getPage(int tableID, int pageNumber) {
+        return pages.get(new PageKey(tableID, pageNumber));
+    }
+
+    public boolean isPageInBuffer(int tableID, int pageNumber) {
+        return pages.containsKey(new PageKey(tableID, pageNumber));
+    }
+
+    public void writePageToHardware(Page page) {
+        if (!page.isUpdated()) return;
         
-        // If buffer is full, then store the LRU Page
-        if (pages.size() >= bufferSize) {
-            evictPage(StorageManager);
+        try (RandomAccessFile fileOut = new RandomAccessFile(Main.getDBLocation() + 
+                "/tables/" + page.getTableId() + ".bin", "rw")) {
+            Table table = Main.getCatalog().getTable(page.getTableId());
+            byte[] data = page.toBinary(table);
+            int[] pageLocations = table.getPageLocations();
+            int index = -1;
+            
+            for (int i = 0; i < table.getPageCount(); i++) {
+                if (pageLocations[i] == page.getPageId()) {
+                    index = i;
+                    break;
+                }
+            }
+            
+            if (index < 0) {
+                System.err.println("Can't write page: No pages in table");
+                return;
+            }
+            
+            fileOut.seek(Integer.BYTES + (index * Main.getPageSize()));
+            fileOut.write(data);
+            System.out.println("Page data saved in binary format at " + fileOut);
+        } catch (IOException e) {
+            e.printStackTrace();
         }
-
-        pages.put(key, page);
     }
 
-    private void evictPage(StorageManager storageManager){
-        Map.Entry<PageKey, Page> oldestEntry = pages.entrySet().iterator().next();
-        PageKey evictedKey = oldestEntry.getKey();
-        Page evictedPage = oldestEntry.getValue();
+    public void writeBufferToHardware() {
+        Catalog catalog = Main.getCatalog();
+        byte[] tableUpdatedArray = new byte[catalog.getTableCount()];
+        Arrays.fill(tableUpdatedArray, (byte) 0);
 
-        // check if page was updated
-        if (modifiedPages.contains(evictedKey)){
-            storageManager.writePageToDisk(evictedPage);
-            modifiedPages.remove(evictedKey);
+        for (Map.Entry<PageKey, Page> entry : pages.entrySet()) {
+            Page page = entry.getValue();
+            int tableNum = page.getTableId();
+            
+            if (tableUpdatedArray[tableNum] == 0) {
+                Table table = catalog.getTable(tableNum);
+                try (RandomAccessFile fileOut = new RandomAccessFile(Main.getDBLocation() + 
+                        "/tables/" + tableNum + ".bin", "rw")) {
+                    fileOut.write(table.getPageCount());
+                    tableUpdatedArray[tableNum] = 1;
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+            
+            writePageToHardware(page);
         }
-
-        // Remove page from buffer
-        pages.remove(evictedKey);
     }
 
-    // Call when a page has information saved to it so that the buffer knows when to write information to disk
-    public void markPage(int tableID, int pageId){
-        PageKey key = new PageKey(tableID, pageId);
-        modifiedPages.add(key)
+    public void updatePage(Page targetPage) {
+        pages.put(new PageKey(targetPage.getTableId(), targetPage.getPageId()), targetPage);
     }
 
-    public void removePage(int tableId, int pageId) {
-        PageKey key = new PageKey(tableId, pageId);
-
-        if (modifiedPages.contains(key)){
-            storageManager.writePageToDisk(pages.get(key));
-            modifiedPages.remove(key);
-        }
-
-        pages.remove(key);
-    }
-    
-    public Page getPage(int tableId, int pageId) {
-        PageKey key = new PageKey(tableId, pageId);
-
-        if (pages.contains(key)){
-            Page page = pages.remove(key);
-            pages.put(key, page);
-            return page;
-        }
-
-        return null; // if no page found in buffer return null
-    }
-    
-    public boolean inBuffer(int tableId, int pageId) {
-        PageKey key = new PageKey(tableId, pageId);
-        return pages.containsKey(key);
+    public void updateAndMovePage(Page targetPage, int oldPageNumber) {
+        addPage(targetPage.getPageId(), targetPage);
+        pages.remove(new PageKey(targetPage.getTableId(), oldPageNumber));
     }
 }
+
+record PageKey(int tableID, int pageID) {}

@@ -2,6 +2,7 @@
 
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
+import java.util.List;
 
 public class Record {
     private int size;
@@ -65,10 +66,49 @@ public class Record {
         return this.size;
     }
 
-    public byte[] toBinary(){
-        ByteBuffer data = ByteBuffer.allocate(this.size);
-        // get sizes of each datatype, add to "data"
-        // ?
-        return data.array();
+    public byte getBitMapValue(int index) {
+        if (index < 0 || index >= nullBitMap.size()) {
+            throw new IndexOutOfBoundsException("Index " + index + " is out of bounds for nullBitMap with size " + nullBitMap.size());
+        }
+        return nullBitMap.get(index);
     }
+
+    public byte[] toBinary(List<Attribute> attributes) {
+        ByteBuffer recData = ByteBuffer.allocate(this.size);
+        
+        // Convert nullBitMap list to byte array
+        byte[] bitMap = new byte[nullBitMap.size()];
+        for (int i = 0; i < nullBitMap.size(); i++) {
+            bitMap[i] = nullBitMap.get(i);
+        }
+        recData.put(bitMap);
+
+        int tupleIndex = 0;
+        for (Attribute attr : attributes) {
+            if (getBitMapValue(tupleIndex) == 1) {
+                tupleIndex++;
+                continue;
+            }
+
+            Object value = data.get(tupleIndex);
+            tupleIndex++;
+            
+            switch (attr.getType().toLowerCase()) {
+                case "varchar" -> {
+                    byte[] varcharBytes = ((String) value).getBytes();
+                    recData.putInt(varcharBytes.length);
+                    recData.put(varcharBytes);
+                }
+                case "char" -> {
+                    String paddedCharValue = String.format("%-" + attr.getSize() + "s", value);
+                    recData.put(paddedCharValue.getBytes());
+                }
+                case "integer" -> recData.putInt((int) value);
+                case "double" -> recData.putDouble((double) value);
+                case "boolean" -> recData.put((byte) ((boolean) value ? 1 : 0));
+            }
+        }
+        return recData.array();
+    }
+    
 }

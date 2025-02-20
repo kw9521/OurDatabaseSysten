@@ -94,8 +94,20 @@ public class Main {
         
     }
 
+    public static String getDBLocation() {
+        return dbLocation;
+    }
+
     public static PageBuffer getBuffer() {
         return buffer;
+    }
+
+    public static Catalog getCatalog() {
+        return catalog;
+    }
+
+    public static StorageManager getStorageManager() {
+        return storageManager;
     }
 
     public static int getPageSize() {

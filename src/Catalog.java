@@ -40,6 +40,10 @@ public class Catalog {
         return this.tables;
     }
 
+    public int getTableCount() {
+        return this.tableCount;
+    }
+
     public int getNextTableID(){
         return this.tables.size();
     }
@@ -57,20 +61,12 @@ public class Catalog {
      * Also gets rid of the empty space after table has been dropped
      * @param droppedTab
      */
-    public void dropTable(Table droppedTab) {
-        // Use below method maybe?
-        int id = droppedTab.getTableID();
-        
-        // remove the table from the list
-        // by using .remove(): the elements to the right of the removed element are 
-        // automatically shifted one position to the left (towards index 0) to fill the gap
-        tables.remove(droppedTab);
-    
-        // update the table IDs for tables that had a higher ID than the dropped table
-        for (Table tab : tables) {
-            if (tab.getTableID() > id) {
-                tab.setTableID(tab.getTableID() - 1);
-            }
+    public void dropTable(String tableName) {
+        if (tables.removeIf(table -> table.getName().equals(tableName))) {
+            tableCount--;
+            System.out.println("Table dropped: " + tableName);
+        } else {
+            System.err.println("Table not found: " + tableName);
         }
     }
     

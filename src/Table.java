@@ -10,7 +10,7 @@ public class Table {
     private List<Attribute> attributes;
     private int attributesCount; 
     private int pageCount;
-    private List<Integer> pages; // pageId
+    private int[] pageLocations; // pageId
 
     public Table(String name, int tableID, int attributesCount, List<Attribute> attributes){
         this.name = name;
@@ -19,7 +19,7 @@ public class Table {
         this.attributes = attributes;
 
         this.pageCount = 0;
-        this.pages = new ArrayList<>();
+        this.pageLocations = new int[0];
     }
 
     // Implementing still...
@@ -29,10 +29,33 @@ public class Table {
         this.pageCount++;
     }
 
-    public void dropPage(Page page){
-        PageBuffer buffer = Main.getBuffer();
-        buffer.removePage(page.getTableId(), page.getPageId());
-        this.pageCount--;
+    public void dropPage(int pageNum) {
+        int indexToRemove = -1;
+        for (int i = 0; i < pageCount; i++) {
+            if (pageLocations[i] == pageNum) {
+                indexToRemove = i;
+                break;
+            }
+        }
+
+        if (indexToRemove != -1) {
+            int[] newArray = new int[pageCount - 1];
+            for (int i = 0, j = 0; i < pageCount; i++) {
+                if (i != indexToRemove) {
+                    newArray[j] = pageLocations[i] > pageNum ? pageLocations[i] - 1 : pageLocations[i];
+                    if (pageLocations[i] > pageNum) {
+                        Page page = Main.getStorageManager().getPage(tableId, pageLocations[i]);
+                        page.setPageId(page.getPageId() - 1);
+                        Main.getBuffer().updatePage(page);
+                    }
+                    j++;
+                }
+            }
+            pageLocations = newArray;
+            pageCount--;
+        } else {
+            System.out.println("Page not found: " + pageNum);
+        }
     }
 
     public void addAttribute(Attribute attribute){
@@ -71,14 +94,10 @@ public class Table {
         this.tableId = newtableID;
     }
     
-    public int getRecordCount() {
-        if (pages == null || pages.isEmpty()) {
-            return 0; // No pages, so no records
-        }
-        // TODO
-        return 0;
+    public int[] getPageLocations(){
+        return this.pageLocations;
     }
-    
+
     public void displayTable(){
         System.out.println("Table name: Gian (test)");
         System.out.println("Table schema: ");
@@ -111,7 +130,7 @@ public class Table {
         buffer.get(nameBytes);
         String name = new String(nameBytes, StandardCharsets.UTF_8);
         int tableNumber = buffer.getInt();
-        int numPages = buffer.getInt();
+        int pageCount = buffer.getInt();
         List<Attribute> attributes = new ArrayList<>();
         
         for (int i = 0; i < attributesCount; i++) {
@@ -119,10 +138,10 @@ public class Table {
         }
         
         Table table = new Table(name, tableNumber, attributesCount, attributes);
-        table.pageCount = numPages;
+        table.pageCount = pageCount;
         
-        for (int i = 0; i < numPages; i++) {
-            table.pages.add(buffer.getInt());
+        for (int i = 0; i < pageCount; i++) {
+            table.pageLocations[i] = (buffer.getInt());
         }
         
         return table;
@@ -141,6 +160,23 @@ public class Table {
         }
 
         return totalSize;
+    }
+
+    public Page getPageByNumber(int pageId) {
+        StorageManager storageManager = Main.getStorageManager();
+        Page page = storageManager.getPage(this.tableId, pageId);
+        return page;
+    }
+
+    public String getRecordCount() {
+        int totalRecords = 0;
+        for (int pageLocation : this.pageLocations) {
+            Page page = getPageByNumber(pageLocation);
+            if (page != null) {
+                totalRecords += page.getRecordCount(); 
+            }
+        }
+        return String.valueOf(totalRecords);
     }
 
 }

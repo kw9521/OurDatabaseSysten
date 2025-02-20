@@ -13,27 +13,30 @@ public class Page {
     private int size;
     private int pageId;
     private int tableId;
-    private ByteBuffer buffer;
     private List<Record> records;
     private int recordCount;
+    private boolean updated;
 
-    public Page(int pageId, int tableId){
+    public Page(int pageId, int tableId, boolean updated){
         this.pageId = pageId;
         this.tableId = tableId;
         this.records = new ArrayList<>();
         this.recordCount = 0;
+        this.updated = updated;
     }
 
     public void addRecord(Record record){
         this.records.add(record);
         this.recordCount++;
         this.size += record.getSize();
+        this.updated = true;
     }
 
     public void deleteRecord(Record record, int index){
         this.records.remove(index);
         this.recordCount--;
         this.size -= record.getSize();
+        this.updated = true;
     }
 
     public List<Record> getRecords(){
@@ -42,6 +45,7 @@ public class Page {
 
     public void setRecords(List<Record> records){
         this.records = records;
+        this.updated = true;
     }
 
     public int getRecordCount(){
@@ -72,19 +76,23 @@ public class Page {
         this.size = size;
     }
 
+    public boolean isUpdated() {
+        return updated;
+    }
+
     public boolean isOverfull(){
         return getSize() > Main.getPageSize();
     }
 
-    public byte[] toBinary(){
-        ByteBuffer data = ByteBuffer.allocate(Main.getPageSize());
-        data.putInt(getRecordCount());
+    public byte[] toBinary(Table table) {
+        ByteBuffer buffer = ByteBuffer.allocate(Main.getPageSize());
+        buffer.putInt(getRecordCount());
 
-        for (Record record : records){
-            //record.toBinary is broken
-            byte[] recordBytes = record.toBinary();
+        for (Record record : records) {
+            byte[] recordBytes = record.toBinary(table.getAttributes());
             buffer.put(recordBytes);
         }
+
         return buffer.array();
     }
 }
