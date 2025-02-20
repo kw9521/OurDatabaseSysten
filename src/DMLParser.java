@@ -176,7 +176,6 @@ public class DMLParser {
         List<Attribute> attrOfSelectedTable = selectedTable.getAttributes();
 
 
-        // go thru each attribute associated with selected table and get length of attribute name
         // initial max length will be max length of the attribute name
         for (Attribute attr : attrOfSelectedTable) {
             maxAttributeLength.put(attr.getName(), attr.getName().length());
@@ -206,6 +205,7 @@ public class DMLParser {
                     if (valueString.length() > maxAttributeLength.get(attrOfSelectedTable.get(j).getName())) {
                         // update the max length of the attribute
                         maxAttributeLength.put(attrOfSelectedTable.get(j).getName(), valueString.length());
+                        // replace? or add new one
                     }
                 }
             }
@@ -213,6 +213,105 @@ public class DMLParser {
 
         // everything above is just to determine the max size of each tuple
         // everything below will be for PRINTING to output
+
+        // num of dashes = (number of attributes total + 1) + (each attribute's max length +1)
+        int totalLength = 0;
+        for (Attribute attr : attrOfSelectedTable) {
+            totalLength += maxAttributeLength.get(attr.getName()) + 1;
+        }
+        totalLength += attrOfSelectedTable.size() + 1;
+
+        // first "-------" line
+        System.out.println("-".repeat(totalLength));
+
+
+
+        // print the attribute names
+        // print "|" at in the beginning
+        // if attribute's max length is a even number then:
+            // numofSpacesFrontAndBack = ((max length of each attribute+1) - (length of the attribute name)) / 2
+            // print:
+            //  " "* numofSpacesFrontAndBack
+            //  attribute name
+            // " "* numofSpacesFrontAndBack
+        // else
+            // numofSpaces = ((max length of each attribute+1) - (length of the attribute name)) 
+            // numOfSpacesFront = numOfSpaces / 2 ROUNDED UP
+            // numOfSpacesBack = numOfSpaces / 2 ROUNDED DOWN
+            // print:
+            //  " "* numofSpacesFront
+            //  attribute name
+            // " "* numofSpacesBack
+        // print "|" at the end
+        
+        for (Attribute attr : attrOfSelectedTable) {
+            int maxAttrLength = maxAttributeLength.get(attr.getName());
+            int spacesFront = 0;
+            int spacesBack = 0;
+
+            if (maxAttrLength % 2 == 0) {
+                spacesFront = (maxAttrLength - attr.getName().length()) / 2;
+                spacesBack = spacesFront;
+            } else {
+                int spaces = maxAttrLength - attr.getName().length(); // 5
+                spacesFront = spaces / 2 + 1;   // 5/2 = 2 + 1 =3
+                spacesBack = spaces - spacesFront;
+            }
+
+            System.out.print("|");
+            System.out.print(" ".repeat(spacesFront));
+            System.out.print(attr.getName());
+            System.out.print(" ".repeat(spacesBack));
+        }
+        // print remaining "|"
+        System.err.println("|");
+        
+        // print 2nd "-------" line
+        System.out.println("-".repeat(totalLength));
+
+
+        // print each attribute's values
+        // print the actual data now
+        // print "|" at in the beginning
+        // for each attribute:
+            // numofSpaces = attribute's MAX length + 1
+            // numOfSpacesFront = numOfSpaces - CURRENT attribute's value length 
+            // print:
+            //  " "* numofSpacesFront
+            //  attribute's value
+            // "|"
+        // print "|" at the end
+        // [ [Tuples], [Tuples], [Tuples], ... ]
+        for (List<Object> recordTuple : listOfRecordTuples) {
+
+            // [value, value, value, ...]
+            for (int j = 0; j < recordTuple.size(); j++) {
+
+                // value of curr attr
+                Object value = recordTuple.get(j);
+
+                Attribute currAttr = attrOfSelectedTable.get(j);
+
+                int maxAttrLength = maxAttributeLength.get(currAttr.getName());
+                int spaces = maxAttrLength + 1;
+                int spacesFront = 0;
+
+                if (value != null) {
+                    String valueString = value.toString();
+                    spacesFront = spaces - valueString.length();
+                    System.out.print("|");
+                    System.out.print(" ".repeat(spacesFront));
+                    System.out.print(valueString);
+                } else {
+                    System.out.print("|");
+                    System.out.print(" ".repeat(spaces));
+                }
+            }
+            System.out.println("|");
+        }
+
+        // print ending "SUCCESS" message
+        System.out.println("SUCCESS");
 
     }
 }
