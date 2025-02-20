@@ -1,5 +1,8 @@
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+
+import javax.naming.directory.AttributeInUseException;
 
 public class DMLParser {
     // Example creation:
@@ -49,7 +52,7 @@ public class DMLParser {
                     }
                     break;
                 case "select":
-                    select(normalizedStatement);
+                    select(normalizedStatement, catalog, storageManager);
                     break;
                 default:
                     throw new DMLParserException(INVALID_STATEMENT + ": " + statement);
@@ -147,8 +150,69 @@ public class DMLParser {
         System.out.println("ERROR");
     }    
 
-    private void select(String statement) {
-        // Implement
-        // An error will be reported if the table does not exist.
+    private void select(String normalizedStatement, Catalog catalog, StorageManager storageManager) {
+
+        // check if input is in format: select * from foo;
+        String[] parts = normalizedStatement.split(" ");
+        if (parts.length < 4) {
+            System.out.println("Invalid command format.");
+            return;
+        }
+
+        String tableName = parts[3];
+        Table selectedTable = catalog.getTableByName(tableName);
+
+        // check if table exists...does not exist
+        if (selectedTable == null) {
+            System.out.println("No such table " + tableName);
+            System.out.println("ERROR");
+            return;
+        }
+
+        // used to store the max length of each attribute
+        // Key = atrr name
+        // Value = max length of the attribute's data
+        HashMap<String, Integer> maxAttributeLength = new HashMap<String, Integer>();
+        List<Attribute> attrOfSelectedTable = selectedTable.getAttributes();
+
+
+        // go thru each attribute associated with selected table and get length of attribute name
+        // initial max length will be max length of the attribute name
+        for (Attribute attr : attrOfSelectedTable) {
+            maxAttributeLength.put(attr.getName(), attr.getName().length());
+        }
+
+        // get ID associated with selcted Table
+        int tableNumber = selectedTable.getTableID();
+
+        // go thru each page of the selected table and get all records associated with this page via getRecords() 
+            // go thru all the records and call getData() of Record.java and get length of the name of the record
+            
+        // [ [Tuples], [Tuples], [Tuples], ... ]
+        // getRecords gets all records associated with the table, even with page splits
+        List<List<Object>> listOfRecordTuples = storageManager.getRecords(tableNumber);
+        
+        // recordTuple = each individual tuple in the list of tuples
+        for (List<Object> recordTuple : listOfRecordTuples) {
+            
+            // go thru each value in above tuple
+             // tuple: [value, value, value, ...]
+            for (int j = 0; j < recordTuple.size(); j++) {
+                Object value = recordTuple.get(j);
+                if (value != null) {
+                    String valueString = value.toString();
+                    
+                    // go thru entire tuple, check if length of that attr's value is greater than the one currently stored in the hashmap
+                    if (valueString.length() > maxAttributeLength.get(attrOfSelectedTable.get(j).getName())) {
+                        // update the max length of the attribute
+                        maxAttributeLength.put(attrOfSelectedTable.get(j).getName(), valueString.length());
+                    }
+                }
+            }
+        }
+
+        // everything above is just to determine the max size of each tuple
+        // everything below will be for PRINTING to output
+
     }
 }
