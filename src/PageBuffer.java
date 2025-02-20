@@ -36,37 +36,7 @@ public class PageBuffer {
     }
 
     public void writePageToHardware(Page page) {
-        storageManager.writePage(page); // need to implement this in StorageManager
-
-
-        // Move this functionality to StorageManager
-        // if (!page.isUpdated()) return;
-        
-        // try (RandomAccessFile fileOut = new RandomAccessFile(Main.getDBLocation() + 
-        //         "/tables/" + page.getTableId() + ".bin", "rw")) {
-        //     Table table = Main.getCatalog().getTable(page.getTableId());
-        //     byte[] data = page.toBinary(table);
-        //     int[] pageLocations = table.getPageLocations();
-        //     int index = -1;
-            
-        //     for (int i = 0; i < table.getPageCount(); i++) {
-        //         if (pageLocations[i] == page.getPageId()) {
-        //             index = i;
-        //             break;
-        //         }
-        //     }
-            
-        //     if (index < 0) {
-        //         System.err.println("Can't write page: No pages in table");
-        //         return;
-        //     }
-            
-        //     fileOut.seek(Integer.BYTES + (index * Main.getPageSize()));
-        //     fileOut.write(data);
-        //     System.out.println("Page data saved in binary format at " + fileOut);
-        // } catch (IOException e) {
-        //     e.printStackTrace();
-        // }
+        storageManager.writePage(page); // calls
     }
 
     public void writeBufferToHardware() {
