@@ -41,12 +41,13 @@ public class StorageManager {
     // Retrieves a page: checks buffer first, then loads from disk if missing
     public Page getPage(int tableNumber, int pageNumber) {
         Page page = buffer.getPage(tableNumber, pageNumber);
+        List<Page> pages = new ArrayList<>();
         
         if (page == null) { // Page not in buffer, load from disk
-            page = loadPageFromDisk(tableNumber, pageNumber);
+            pages = loadPages(tableNumber);
         }
         
-        return page;
+        return pages.get(pageNumber);
     }
 
     // Helper method to load pages from buffer or file
@@ -55,7 +56,7 @@ public class StorageManager {
         List<Page> pages = new ArrayList<>();
 
         for (int i = 0; i < table.getPageCount(); i++) {
-            pages.add(buffer.inBuffer(tableNumber, i) ? 
+            pages.add(buffer.isPageInBuffer(tableNumber, i) ? 
                     buffer.getPage(tableNumber, i) : 
                     getPage(tableNumber, i));
         }
@@ -79,7 +80,7 @@ public class StorageManager {
         int secondPageSize = 4 + secondHalf.stream().mapToInt(Record::getSize).sum();
 
         // Create new page
-        Page newPage = new Page(page.getPageId() + 1, page.getTableId());
+        Page newPage = new Page(page.getPageId() + 1, page.getTableId(), false);
         newPage.setRecords(new ArrayList<>(secondHalf));
         newPage.setRecordCount(secondHalf.size());
         newPage.setSize(secondPageSize);
@@ -127,7 +128,7 @@ public class StorageManager {
 
         try (RandomAccessFile raf = new RandomAccessFile(filePath, "rw")) {
             raf.seek(raf.length()); // Move to the start of the file and write the full page
-            raf.write(page.toBinary());
+            raf.write(page.toBinary(table));
             System.out.println("Page written to binary file.");
 
         } catch (IOException e) {
