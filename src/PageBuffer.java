@@ -36,35 +36,33 @@ public class PageBuffer {
     }
 
     public void writePageToHardware(Page page) {
-        storageManager.writePage(page); // calls
+        storageManager.writePage(page); // calls storage manager to write page to hardware
     }
 
     public void writeBufferToHardware() {
-        //Call the storage manager to write the buffer to hardware
+        //Call the storage manager to write all pages in the buffer to hardware
 
+        Catalog catalog = Main.getCatalog();
+        byte[] tableUpdatedArray = new byte[catalog.getTableCount()]; // 0 means not updated, 1 means updated
+        Arrays.fill(tableUpdatedArray, (byte) 0); // Initialize the array to 0
 
-        // Move this functionality to StorageManager
-        // Catalog catalog = Main.getCatalog();
-        // byte[] tableUpdatedArray = new byte[catalog.getTableCount()];
-        // Arrays.fill(tableUpdatedArray, (byte) 0);
-
-        // for (Map.Entry<PageKey, Page> entry : pages.entrySet()) {
-        //     Page page = entry.getValue();
-        //     int tableNum = page.getTableId();
+        for (Map.Entry<PageKey, Page> entry : pages.entrySet()) {
+             Page page = entry.getValue();
+             int tableNum = page.getTableId();
             
-        //     if (tableUpdatedArray[tableNum] == 0) {
-        //         Table table = catalog.getTable(tableNum);
-        //         try (RandomAccessFile fileOut = new RandomAccessFile(Main.getDBLocation() + 
-        //                 "/tables/" + tableNum + ".bin", "rw")) {
-        //             fileOut.write(table.getPageCount());
-        //             tableUpdatedArray[tableNum] = 1;
-        //         } catch (IOException e) {
-        //             e.printStackTrace();
-        //         }
-        //     }
+             if (tableUpdatedArray[tableNum] == 0) {
+                Table table = catalog.getTable(tableNum);
+                try (RandomAccessFile fileOut = new RandomAccessFile(Main.getDBLocation() + 
+                         "/tables/" + tableNum + ".bin", "rw")) { // Open the file
+                    fileOut.write(table.getPageCount());
+                    tableUpdatedArray[tableNum] = 1; // Mark the table as updated
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
             
-        //     writePageToHardware(page);
-        // }
+            writePageToHardware(page);
+        }
     }
 
     public void updatePage(Page targetPage) {
