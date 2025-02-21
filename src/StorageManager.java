@@ -291,4 +291,44 @@ public class StorageManager {
             System.err.println("Error reading file: " + e.getMessage());
         }
     }
+
+    //Might not work
+    public void addRecord(int tableNumber, Record record) {
+        Table table = catalog.getTable(tableNumber);
+        
+        if (table == null) {
+            System.err.println("Error: Table with ID " + tableNumber + " not found.");
+            return;
+        }
+    
+        // Find a page with enough space
+        Page targetPage = null;
+        for (int i = 0; i < table.getPageCount(); i++) {
+            Page page = buffer.getPage(tableNumber, i);
+            if (page != null && !page.isOverfull()) {
+                targetPage = page;
+                break;
+            }
+        }
+    
+        // If no page has space, create a new page
+        if (targetPage == null) {
+            targetPage = new Page(table.getPageCount(), tableNumber, false);
+            table.addPage(targetPage);
+            buffer.addPage(targetPage.getPageId(), targetPage);
+        }
+    
+        // Add the record to the target page
+        targetPage.addRecord(record);
+    
+        // Handle split
+        if (targetPage.isOverfull()) {
+            splitPage(targetPage);
+        } else {
+            buffer.updatePage(targetPage);
+        }
+    
+        // Write the updated page to disk
+        writePage(targetPage);
+    }
 }
