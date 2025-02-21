@@ -80,7 +80,7 @@ public class StorageManager {
         int secondPageSize = 4 + secondHalf.stream().mapToInt(Record::getSize).sum();
 
         // Create new page
-        Page newPage = new Page(page.getPageId() + 1, page.getTableId(), false);
+        Page newPage = new Page(page.getPageId() + 1, page.getTableId(), true);
         newPage.setRecords(new ArrayList<>(secondHalf));
         newPage.setRecordCount(secondHalf.size());
         newPage.setSize(secondPageSize);
@@ -313,7 +313,7 @@ public class StorageManager {
     
         // If no page has space, create a new page
         if (targetPage == null) {
-            targetPage = new Page(table.getPageCount(), tableNumber, false);
+            targetPage = new Page(table.getPageCount(), tableNumber, true);
             table.addPage(targetPage);
             buffer.addPage(targetPage.getPageId(), targetPage);
         }

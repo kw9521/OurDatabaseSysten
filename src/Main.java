@@ -30,7 +30,7 @@ public class Main {
 
         // Create our stuff
         catalog = new Catalog(dbLocation, pageSize, bufferSize);
-        // buffer = new PageBuffer(bufferSize);
+        buffer = new PageBuffer(bufferSize);
         storageManager = new StorageManager(dbLocation, catalog, buffer); // idk what this needs either
 
         // Initialize parsers
