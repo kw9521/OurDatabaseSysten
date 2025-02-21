@@ -189,10 +189,10 @@ public class Table {
         for (int pageLocation : this.pageLocations) {
             Page page = getPageByNumber(pageLocation);
             if (page != null) {
-                System.out.println(page.getRecordCount());
                 totalRecords += page.getRecordCount(); 
             }
         }
+        
         return String.valueOf(totalRecords);
     }
 

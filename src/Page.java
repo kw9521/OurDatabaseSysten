@@ -32,7 +32,6 @@ public class Page {
         this.recordCount++;
         this.size += record.getSize();
         this.updated = true;
-        System.out.println(recordCount);
     }
 
     public void deleteRecord(Record record, int index) {
