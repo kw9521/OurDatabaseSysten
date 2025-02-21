@@ -21,8 +21,8 @@ public class Main {
         // Parse the args
         dbLocation = args[0];
         try {
-            bufferSize = Integer.parseInt(args[1]);
-            pageSize = Integer.parseInt(args[2]);
+            bufferSize = Integer.parseInt(args[2]);
+            pageSize = Integer.parseInt(args[1]);
         } catch (NumberFormatException e) {
             System.out.println("Error: pageBufferSize and pageSize must be integers.");
             return;
