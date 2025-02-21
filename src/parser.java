@@ -183,6 +183,8 @@ public class parser {
             if (!storageManager.addRecord(catalog, newRecord, table.getTableID())) {
                 return;
             }
+
+            System.out.println("SUCCESS\n");
         }
     
         // System.out.println("Record(s) inserted successfully into table: " + tableName);
@@ -204,7 +206,7 @@ public class parser {
                 case "integer": return Integer.parseInt(value);
                 case "double": return Double.parseDouble(value);
                 case "boolean": return Boolean.parseBoolean(value);
-                case "char":
+                case "char": return value; 
                 case "varchar": return value;
                 default:
                     System.err.println("Unsupported attribute type: " + attribute.getType());
