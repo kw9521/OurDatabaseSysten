@@ -111,10 +111,23 @@ public class parser {
         String[] individualValueSets = valuesPart.split("\\),\\s*\\(");
         for (String valueSet : individualValueSets) {
             valueSet = valueSet.trim().replaceAll("^\\(|\\)$", ""); // Remove outer parentheses
+            String currentRow = "Row (" + valueSet + ") :";
             String[] values = valueSet.split(" ");
     
             if (values.length != table.getAttributesCount()) {
-                System.out.println("Mismatch between number of columns and values provided.");
+                String expected = "";
+                for(Attribute attr : table.getAttributes()){
+                    expected += attr.getTypeFancy() + " ";
+                }
+                expected = expected.substring(0, expected.length() - 1); //Remove empty space for formatting
+                String got = "";
+                for(int index = 0; index < values.length; index++){
+                    got += getActualType(values[index]);
+                    if(index != values.length-1){
+                        got += " ";
+                    }
+                }
+                System.out.println(currentRow + " Too many attributes: expect(" + expected + ") got (" + got + ")");
                 return;
             }
     
@@ -140,7 +153,8 @@ public class parser {
                         expected += attr.getTypeFancy() + " ";
                     }
                     expected = expected.substring(0, expected.length() - 1); //Remove empty space for formatting
-                    System.err.println("Invalid data types: expected (" + expected + ")");
+                    String acutalType = getActualType(value);
+                    System.err.println(currentRow + "Invalid data types: expected (" + expected + ")" + " got (" + acutalType + ")");
                     return;
                 }
                 
@@ -155,7 +169,6 @@ public class parser {
     
                 recordValues.add(parsedValue);
                 nullBitMap.add((byte) 0);
-                System.out.println("SUCCESS\n");
             }
     
             int recordSize = calculateRecordSize(recordValues, table.getAttributes());
@@ -169,6 +182,14 @@ public class parser {
         // System.out.println("Record(s) inserted successfully into table: " + tableName);
     }    
     
+    private static String getActualType(String value) {
+        if (value.matches("-?\\d+")) return "integer";
+        if (value.matches("-?\\d+(\\.\\d+)?")) return "double";
+        if (value.equalsIgnoreCase("true") || value.equalsIgnoreCase("false")) return "boolean";
+        if (value.length() == 1) return "char";
+        return "varchar";
+    } 
+
     private static Object parseValueBasedOnType(String value, Attribute attribute) {
         value = value.replaceAll("^\"|\"$", "");
     
