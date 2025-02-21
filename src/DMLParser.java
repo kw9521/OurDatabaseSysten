@@ -275,11 +275,13 @@ public class DMLParser {
             return;
         }
         
-        String tableName = parts[2];
+        String tableStr = parts[2];
+        // get rid of the ";" at the end
+        String tableName = tableStr.substring(0, tableStr.length()-1);
         
         List<Table> tables = catalog.getTables();
         if (tables == null || tables.isEmpty()) {
-            System.out.println("Table" + tableName + "not found.");
+            System.out.println("Table " + tableName + "not found.");
             return;
         }
     
