@@ -25,7 +25,7 @@ public class DDLParser {
             switch (command) {
                 case "create":
                     if (tokens.length > 1 && tokens[1].startsWith("table")) {
-                        createTable(normalizedStatement, catalog);
+                        createTable(normalizedStatement, catalog, storageManager);
                     } else {
                         throw new DDLParserException("Invalid create syntax: " + statement);
                     }
@@ -67,7 +67,7 @@ public class DDLParser {
     // bazzle char(10) unique notnull
     // );
 
-    private static void createTable(String statement, Catalog catalog) {
+    private static void createTable(String statement, Catalog catalog, StorageManager storageManager) {
         String[] parts = statement.split("\\s+", 3);
 
         // Validate command structure
@@ -136,6 +136,7 @@ public class DDLParser {
                 attributes.size(),
                 attributes);
         catalog.addTable(newTable);
+        storageManager.createTableFile(newTable.getTableID()); //Create the .bin file for the table
 
         System.out.println("Table '" + tableName + "' created successfully.");
     }

@@ -331,4 +331,24 @@ public class StorageManager {
         // Write the updated page to disk
         writePage(targetPage);
     }
+
+    //Initializes a new table file
+    public void createTableFile(int tableID){
+        int numOfPages = 1;
+        int pageID = 0;
+        int numOfRecords = 0;
+        String filePath = this.dblocation + "/" + tableID + ".bin";
+
+        try (RandomAccessFile raf = new RandomAccessFile(filePath, "rw")) {
+            // Move to the beginning of the file
+            raf.seek(0);
+
+            // Write the initial page setup to the file
+            raf.writeInt(numOfPages);
+            raf.writeInt(pageID);
+            raf.writeInt(numOfRecords);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
 }
