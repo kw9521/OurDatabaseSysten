@@ -110,7 +110,7 @@ public class parser {
                 if (parsedValue == null) {
                     String expected = "";
                     for(Attribute attr : table.getAttributes()){
-                        expected += attr.getType() + " ";
+                        expected += attr.getTypeFancy() + " ";
                     }
                     expected = expected.substring(0, expected.length() - 1); //Remove empty space for formatting
                     System.err.println("Invalid data types: expected (" + expected + ")");
@@ -158,6 +158,7 @@ public class parser {
             }
         }
         catch(Exception e){
+            e.printStackTrace();
             return null;
         }
     }
