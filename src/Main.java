@@ -1,5 +1,7 @@
+import java.io.BufferedReader;
 import java.io.File;
-import java.util.Scanner;
+import java.io.IOException;
+import java.io.InputStreamReader;
 
 public class Main {
     private static Catalog catalog;
@@ -8,92 +10,89 @@ public class Main {
     private static String dbLocation;
     private static int pageSize;
     private static int bufferSize;
-    private static DDLParser ddlParser;
-    private static DMLParser dmlParser;
 
     public static void main(String[] args) {
-        // Check the correct number of args
         if (args.length != 3) {
-            System.out.println("Usage: java Database <dblocation> <pageBufferSize> <pageSize>");
+            System.out.println("Usage: java Main <db location> <page size> <buffer size>");
             return;
         }
-
-        // Parse the args
-        dbLocation = args[0];
-        try {
-            bufferSize = Integer.parseInt(args[2]);
-            pageSize = Integer.parseInt(args[1]);
-        } catch (NumberFormatException e) {
-            System.out.println("Error: pageBufferSize and pageSize must be integers.");
-            return;
-        }
-
-        // Create our stuff
-        catalog = new Catalog(dbLocation, pageSize, bufferSize);
+    
+        initializeDatabase(args);
+        runCommandLoop();
+        shutdownDatabase();
+    }
+    
+    private static void initializeDatabase(String[] args) {
+        dbLocation = args[0].endsWith("/") ? args[0] : args[0] + "/";
+        pageSize = Integer.parseInt(args[1]);
+        bufferSize = Integer.parseInt(args[2]);
+    
+        new File(dbLocation + "tables").mkdirs();
+    
+        String catalogPath = dbLocation + "catalog.bin";
+        System.out.println("Welcome to JottQL\nLooking for catalog at " + catalogPath + "...");
+    
         buffer = new PageBuffer(bufferSize);
-        storageManager = new StorageManager(dbLocation, catalog, buffer); // idk what this needs either
-
-        // Initialize parsers
-        ddlParser = new DDLParser();
-        dmlParser = new DMLParser();
-
-        // Welcome message and initial database check
-        System.out.println("Welcome to JottQL");
-        System.out.println("Looking at " + dbLocation + " for existing db....");
-
-        File dbFolder = new File(dbLocation);
-
-        if (dbFolder.exists() && dbFolder.isDirectory()) {
-            File catalogFile = new File(dbFolder, "catalog.bin");
-            if(catalogFile.exists()){
-                System.out.println("Existing db found at " + dbLocation);
-                storageManager.loadCatalog(catalog);
-            }
-        } else {
-            System.out.println("No existing db found");
-            System.out.println("Creating new db at " + dbLocation);
-            if (dbFolder.mkdirs()) {
-                System.out.println("New db created successfully");
+        catalog = new Catalog(dbLocation, pageSize, bufferSize);
+        storageManager = new StorageManager(catalog, buffer);
+    
+        try {
+            if (new File(catalogPath).exists()) {
+                catalog.readCatalog(catalogPath);
+                System.out.println("Catalog loaded successfully.");
             } else {
-                System.out.println("Error: Failed to create db at " + dbLocation);
-                return;
+                System.out.println("No existing catalog found. Creating a new one.");
             }
+        } catch (IOException e) {
+            System.err.println("Failed to load catalog: " + e.getMessage());
+            System.exit(1);
         }
-
-        // Start the input loop
-        try (Scanner scanner = new Scanner(System.in)) {
-            System.out.println("\nPlease enter commands, enter <quit> to shutdown the db\n");
-        
+    }
+    
+    private static void runCommandLoop() {
+        System.out.println("\nPlease enter commands. Type <quit> to exit.\n");
+    
+        try (BufferedReader reader = new BufferedReader(new InputStreamReader(System.in))) {
+            StringBuilder commandBuffer = new StringBuilder();
+            String inputLine;
+    
             while (true) {
                 System.out.print("JottQL> ");
-                String inputLine = scanner.nextLine();
-        
+                inputLine = reader.readLine();
+    
                 if (inputLine == null || inputLine.trim().equalsIgnoreCase("quit")) {
-                    // IMPLEMENT
-                    storageManager.writeCatalogToFile(catalog);
-                    buffer.writeBufferToHardware();
+                    executeBufferedCommand(commandBuffer);
                     break;
                 }
-        
-                inputLine = inputLine.trim();
-        
-                try {
-                    if (inputLine.startsWith("create") || inputLine.startsWith("alter") || inputLine.startsWith("drop")) {
-                        ddlParser.parseDDLstatement(inputLine, catalog, storageManager);
-                    } else if (inputLine.startsWith("insert") || inputLine.startsWith("display") || inputLine.startsWith("select")) {
-                        dmlParser.parseDMLstatement(inputLine, catalog, storageManager);
-                    } else {
-                        System.out.println("Unknown command: " + inputLine);
-                    }
-                } catch (Exception e) {
-                    System.err.println("Error: " + e.getMessage());
+    
+                commandBuffer.append(" ").append(inputLine.trim());
+    
+                if (inputLine.trim().endsWith(";")) {
+                    executeBufferedCommand(commandBuffer);
                 }
             }
-        } catch (Exception e) {
+        } catch (IOException e) {
             System.err.println("Error reading input: " + e.getMessage());
         }
-        
     }
+    
+    private static void executeBufferedCommand(StringBuilder commandBuffer) {
+        if (commandBuffer.length() > 0) {
+            parser.parse(commandBuffer.toString().trim(), catalog, buffer, dbLocation, pageSize, storageManager);
+            commandBuffer.setLength(0);
+        }
+    }
+    
+    private static void shutdownDatabase() {
+        buffer.writeBuffer();
+        try {
+            catalog.writeCatalog(dbLocation + "catalog.bin");
+        } catch (IOException e) {
+            System.err.println("Error saving catalog: " + e.getMessage());
+        }
+    
+        System.out.println("Exiting...");
+    }    
 
     public static String getDBLocation() {
         return dbLocation;
@@ -113,6 +112,14 @@ public class Main {
 
     public static int getPageSize() {
         return pageSize;
+    }
+
+    public static void writeBuffer() {
+        buffer.writeBuffer();
+    }
+
+    public static void writeCatalogToFile(String catalogPath) throws IOException {
+        catalog.writeCatalog(catalogPath);
     }
 
 }

@@ -1,18 +1,19 @@
 // Table = collection of pages
-import java.util.ArrayList;
-import java.util.List;
-import java.nio.ByteBuffer;
+import java.util.Arrays;
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
+import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 
 public class Table {
     private String name;
     private int tableId;
-    private List<Attribute> attributes;
+    private Attribute[] attributes;
     private int attributesCount; 
     private int pageCount;
     private int[] pageLocations; // pageId
 
-    public Table(String name, int tableID, int attributesCount, List<Attribute> attributes){
+    public Table(String name, int tableID, int attributesCount, Attribute[] attributes){
         this.name = name;
         this.tableId = tableID;
         this.attributesCount = attributesCount;
@@ -22,12 +23,28 @@ public class Table {
         this.pageLocations = new int[0];
     }
 
-    // Implementing still...
     public void addPage(Page page){
         PageBuffer buffer = Main.getBuffer();
         buffer.addPage(page.getPageId(), page);
         this.pageCount++;
+        updatePageLocations(page.getPageId());
     }
+
+    private void updatePageLocations(int newPageId) {
+        if (pageLocations == null) {
+            pageLocations = new int[] { newPageId };
+            return;
+        }
+    
+        int[] updatedLocations = Arrays.copyOf(pageLocations, pageCount);
+        
+        for (int i = 0; i < pageCount - 1; i++) {
+            if (updatedLocations[i] >= newPageId) updatedLocations[i]++;
+        }
+    
+        updatedLocations[pageCount - 1] = newPageId;
+        pageLocations = updatedLocations;
+    }    
 
     public void dropPage(int pageNum) {
         int indexToRemove = -1;
@@ -58,28 +75,30 @@ public class Table {
         }
     }
 
-    public void addAttribute(Attribute attribute){
-        this.attributes.add(attribute);
+    public void addAttribute(Attribute newAttr) {
+        this.attributes = Arrays.copyOf(this.attributes, this.attributes.length + 1);
+        this.attributes[this.attributes.length - 1] = newAttr;
         this.attributesCount++;
+        System.out.println("Attribute " + newAttr.getName() + " added to table " + this.name);
     }
 
     public void dropAttribute(String attrName) {
-        boolean removed = attributes.removeIf(attr -> attr.getName().equals(attrName));
-        
-        if (removed) {
-            attributesCount--;
-            System.out.println("Attribute " + attrName + " removed from table " + this.name);
-        } else {
-            System.out.println("Attribute " + attrName + " not found in table " + this.name);
-        }
-    }    
+        this.attributes = Arrays.stream(this.attributes)
+                                .filter(attr -> !attr.getName().equals(attrName))
+                                .toArray(Attribute[]::new);
+        this.attributesCount--;
+        System.out.println("Attribute " + attrName + " removed from table " + this.name);
+    }
 
     public String getName(){
         return this.name;
     }
 
-    public List<Attribute> getAttributes(){
+    public Attribute[] getAttributes(){
         return this.attributes;
+    }
+    public int getAttributesCount(){
+        return attributesCount;
     }
 
     public int getPageCount(){
@@ -99,51 +118,48 @@ public class Table {
     }
 
     public void displayTable(){
-        System.out.println("Table name: Gian (test)");
-        System.out.println("Table schema: ");
-        // for loop to call attributes.displayAttributes()
+        System.out.printf("Table Name: %s%nSchema:%n", getName());
+    
+        for (Attribute attr : this.getAttributes()) {
+            System.out.printf("    %s: %s%s%s%s%n",
+                attr.getName(), attr.getType(),
+                attr.isPrimaryKey() ? " primarykey" : "",
+                attr.isUnique() ? " unique" : "",
+                attr.isnonNull() ? " notnull" : ""
+            );
+        }
+
+        System.out.printf("Pages: %d%nRecords: %s%n%n", getPageCount(), getRecordCount());
     }
 
-    // Experimenting with ByteBuffer, might not work
-    public void writeToBuffer(ByteBuffer buffer) {
-        buffer.putInt(this.tableId);
-        byte[] nameBytes = this.name.getBytes(StandardCharsets.UTF_8);
-        buffer.putInt(nameBytes.length);
-        buffer.put(nameBytes);
-        buffer.putInt(this.attributesCount);
-        // buffer.putInt(this.pageCount); // Not sure if this is currently needed may add back later
-        
+    public void writeToStream(DataOutputStream dos) throws IOException {
+        dos.writeUTF(this.name);
+        dos.writeInt(this.tableId);
+        dos.writeInt(this.attributesCount);
+        dos.writeInt(this.pageCount);
         for (Attribute attr : this.attributes) {
-            attr.writeToBuffer(buffer);
+            attr.writeToStream(dos);
         }
-        
-        // Not sure if this is needed may add back later
-        // for (int location : this.pages) {
-        //     buffer.putInt(location);
-        // }
+        for (int location : this.pageLocations) {
+            dos.writeInt(location);
+        }
     }
 
-    public static Table readFromBuffer(ByteBuffer buffer) {
-        int attributesCount = buffer.getInt();
-        int nameLength = buffer.getInt();
-        byte[] nameBytes = new byte[nameLength];
-        buffer.get(nameBytes);
-        String name = new String(nameBytes, StandardCharsets.UTF_8);
-        int tableNumber = buffer.getInt();
-        int pageCount = buffer.getInt();
-        List<Attribute> attributes = new ArrayList<>();
-        
+    public static Table readFromStream(DataInputStream dis) throws IOException {
+        String name = dis.readUTF();
+        int tableNumber = dis.readInt();
+        int attributesCount = dis.readInt();
+        int numPages = dis.readInt();
+        Attribute[] attributes = new Attribute[attributesCount];
         for (int i = 0; i < attributesCount; i++) {
-            attributes.add(Attribute.readFromBuffer(buffer));
+            attributes[i] = Attribute.readFromStream(dis);
         }
-        
         Table table = new Table(name, tableNumber, attributesCount, attributes);
-        table.pageCount = pageCount;
-        
-        for (int i = 0; i < pageCount; i++) {
-            table.pageLocations[i] = (buffer.getInt());
+        table.pageCount = numPages;
+        table.pageLocations = new int[numPages];
+        for (int i = 0; i < numPages; i++) {
+            table.pageLocations[i] = dis.readInt();
         }
-        
         return table;
     }
 
@@ -173,6 +189,7 @@ public class Table {
         for (int pageLocation : this.pageLocations) {
             Page page = getPageByNumber(pageLocation);
             if (page != null) {
+                System.out.println(page.getRecordCount());
                 totalRecords += page.getRecordCount(); 
             }
         }

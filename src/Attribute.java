@@ -1,23 +1,25 @@
 // Attributes used in table
 
-import java.nio.ByteBuffer;
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
+import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 
 public class Attribute {
     private String name; // Names can start with a alpha-character and contain alphanumeric characters.
     private String type; // Attribute types can only be integer, double, boolean, char(x), and varchar(x)
     // Constraints
-    private boolean isNullable;
+    private boolean nonNull;
     private boolean primaryKey; // Primary keys are assumed to be automatically not null and unique.
     private boolean unique;
     private int size;
 
     private Object defaultValue;
 
-    public Attribute(String name, String type, boolean isNullable, boolean primaryKey, boolean unique, int size){
+    public Attribute(String name, String type, boolean nonNull, boolean primaryKey, boolean unique, int size){
         this.name = name;
         this.type = type;
-        this.isNullable = isNullable;
+        this.nonNull = nonNull;
         this.primaryKey = primaryKey;
         this.unique = unique;
         this.size = size;
@@ -40,12 +42,12 @@ public class Attribute {
         return this.type;
     }
 
-    public void setNullable(boolean notNull){
-        this.isNullable = notNull;
+    public void setNotNull(boolean notNull){
+        this.nonNull = notNull;
     }
 
-    public boolean isNullable(){
-        return this.isNullable;
+    public boolean isnonNull(){
+        return this.nonNull;
     }
 
     public void setPrimaryKey(boolean primaryKey){
@@ -109,37 +111,23 @@ public class Attribute {
         System.out.println("Constraints...");
     }
 
-    public void writeToBuffer(ByteBuffer buffer) {
-        byte[] nameBytes = this.name.getBytes(StandardCharsets.UTF_8);
-        buffer.putInt(nameBytes.length);
-        buffer.put(nameBytes);
-        
-        byte[] typeBytes = this.type.getBytes(StandardCharsets.UTF_8);
-        buffer.putInt(typeBytes.length);
-        buffer.put(typeBytes);
-        
-        buffer.put((byte) (this.isNullable ? 1 : 0));
-        buffer.put((byte) (this.primaryKey ? 1 : 0));
-        buffer.put((byte) (this.unique ? 1 : 0));
-        buffer.putInt(this.size);
+    public void writeToStream(DataOutputStream dos) throws IOException {
+        dos.writeUTF(this.name);
+        dos.writeUTF(this.type);
+        dos.writeBoolean(this.nonNull);
+        dos.writeBoolean(this.primaryKey);
+        dos.writeBoolean(this.unique);
+        dos.writeInt(this.size);
     }
 
-    public static Attribute readFromBuffer(ByteBuffer buffer) {
-        int nameLength = buffer.getInt();
-        byte[] nameBytes = new byte[nameLength];
-        buffer.get(nameBytes);
-        String name = new String(nameBytes, StandardCharsets.UTF_8);
-        
-        int typeLength = buffer.getInt();
-        byte[] typeBytes = new byte[typeLength];
-        buffer.get(typeBytes);
-        String type = new String(typeBytes, StandardCharsets.UTF_8);
-        
-        boolean nonNull = buffer.get() == 1;
-        boolean unique = buffer.get() == 1;
-        boolean primaryKey = buffer.get() == 1;
-        int size = buffer.getInt();
-        
+    public static Attribute readFromStream(DataInputStream dis) throws IOException {
+        String name = dis.readUTF();
+        String type = dis.readUTF();
+        boolean nonNull = dis.readBoolean();
+        boolean primaryKey = dis.readBoolean();
+        boolean unique = dis.readBoolean();
+        int size = dis.readInt();
+
         return new Attribute(name, type, unique, nonNull, primaryKey, size);
     }
 

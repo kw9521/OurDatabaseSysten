@@ -3,11 +3,12 @@ import java.io.RandomAccessFile;
 import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.OptionalInt;
+import java.util.stream.IntStream;
 
 public class PageBuffer {
     private final int capacity;
     private final LinkedHashMap<PageKey, Page> pages;
-    private final StorageManager storageManager = Main.getStorageManager();
 
     public PageBuffer(int capacity) {
         this.capacity = capacity;
@@ -15,7 +16,7 @@ public class PageBuffer {
             @Override
             protected boolean removeEldestEntry(Map.Entry<PageKey, Page> eldest) {
                 if (size() > PageBuffer.this.capacity) {
-                    writePageToHardware(eldest.getValue());
+                    writePage(eldest.getValue());
                     return true;
                 }
                 return false;
@@ -35,11 +36,37 @@ public class PageBuffer {
         return pages.containsKey(new PageKey(tableID, pageNumber));
     }
 
-    public void writePageToHardware(Page page) {
-        storageManager.writePage(page); // calls storage manager to write page to hardware
+    public void writePage(Page page) {
+        if (!page.isUpdated()) return; // Skip if page is not updated
+
+        String fileName = Main.getDBLocation() + "tables/" + page.getTableId() + ".bin";
+        Table table = Main.getCatalog().getTable(page.getTableId());
+        byte[] data = page.toBinary(table); 
+
+        // Find the page index in file
+        int[] pageLocations = table.getPageLocations();
+        OptionalInt indexOpt = IntStream.range(0, table.getPageCount())
+                                        .filter(i -> pageLocations[i] == page.getPageId())
+                                        .findFirst();
+
+        if (indexOpt.isEmpty()) {
+            System.err.println("Error: Cannot write page " + page.getPageId() + " - No pages found in table.");
+            return;
+        }
+
+        int address = Integer.BYTES + (indexOpt.getAsInt() * Main.getPageSize()); // Compute file offset
+
+        try (RandomAccessFile fileOut = new RandomAccessFile(fileName, "rw")) {
+            fileOut.seek(address);
+            fileOut.write(data);
+            System.out.println("Page " + page.getPageId() + " written successfully to " + fileName);
+        } catch (IOException e) {
+            System.err.println("Error writing page " + page.getPageId() + " to file: " + fileName);
+            e.printStackTrace();
+        }
     }
 
-    public void writeBufferToHardware() {
+    public void writeBuffer() {
         //Call the storage manager to write all pages in the buffer to hardware
 
         Catalog catalog = Main.getCatalog();
@@ -61,7 +88,7 @@ public class PageBuffer {
                 }
             }
             
-            writePageToHardware(page);
+            writePage(page);
         }
     }
 

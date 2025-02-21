@@ -1,7 +1,8 @@
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.IOException;
-import java.nio.ByteBuffer;
-import java.nio.file.Files;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Dictionary;
@@ -84,39 +85,6 @@ public class Catalog {
 
     }
 
-    // catalog format: ["PS",
-    // "numOfTable",
-    // "Table1ID", "lengthOfTable1Name", "TableName1Char", "TableName1Char2", ...,
-    // "TableName1CharN"
-    // "NumOfAttributeinTable1",
-    // "Len of Att1 Name", "Att1 Name", "datatype", "bitmap is a string of 01s",
-    // "Len of Att2 Name", "Att2 Name", "datatype", "bitmap is a string of 01s",
-    // ...
-    // "Len of AttN Name", "AttN Name", "datatype", "bitmap is a string of 01s",
-    // "Table2ID", "lengthOfTable2Name", "TableName2", "TableName2Char2", ...,
-    // "TableName12harN"
-    // "NumOfAttributeinTable2",
-    // "Len of Att1 Name", "Att1 Name", "datatype", "bitmap is a string of 01s",
-    // "Len of Att2 Name", "Att2 Name", "datatype", "bitmap is a string of 01s",
-    // ...
-    // "Len of AttN Name", "AttN Name", "datatype", "bitmap is a string of 01s",
-    // ...
-    // "NumOfAttributeinTableN",
-    // "Len of Att1 Name", "Att1 Name", "datatype", "bitmap is a string of 01s",
-    // "Len of Att2 Name", "Att2 Name", "datatype", "bitmap is a string of 01s",
-    // ...
-    // "Len of AttN Name", "AttN Name", "datatype", "bitmap is a string of 01s"]
-    public void parseCatalog(ArrayList<String> catalog) {
-
-        this.pageSize = Integer.parseInt(catalog.get(0));
-        this.tableCount = Integer.parseInt(catalog.get(1));
-
-        // use as pointer to go thru arraylist
-        int currIndex = 2;
-        // readTable(catalog, currIndex);
-
-    }
-
     /**
      * Given initial catalog arraylist of strings, parse info into diff tables
      * After parsing, put all table info to create instance of table. 
@@ -127,23 +95,23 @@ public class Catalog {
 
     // Note: For each table in catalog, call Table.write/readToBuffer
 
-    public void writeCatalogToBuffer(ByteBuffer buffer) throws IOException {
-        buffer.putInt(this.tableCount);
-        for (Table table : this.tables) {
-            table.writeToBuffer(buffer);
+    public void writeCatalog(String pathname) throws IOException {
+        try (DataOutputStream dos = new DataOutputStream(new FileOutputStream(pathname))) {
+            dos.writeInt(this.tableCount);
+            for (Table table : this.tables) {
+                table.writeToStream(dos); 
+            }
         }
     }
 
-    public void readCatalogFromFile(String pathname, ByteBuffer buffer) throws IOException {
-        byte[] fileBytes = Files.readAllBytes(Paths.get(pathname));
-        buffer.put(fileBytes);
-        buffer.flip(); // Prepare for reading
-        
-        this.tableCount = buffer.getInt();
-        this.tables.clear();
-        for (int i = 0; i < this.tableCount; i++) {
-            Table table = Table.readFromBuffer(buffer);
-            this.tables.add(table);
+    public void readCatalog(String pathname) throws IOException {
+        try (DataInputStream dis = new DataInputStream(new FileInputStream(pathname))) {
+            this.tableCount = dis.readInt();
+            this.tables.clear();
+            for (int i = 0; i < this.tableCount; i++) {
+                Table table = Table.readFromStream(dis); 
+                this.tables.add(table);
+            }
         }
     }
 
@@ -197,6 +165,22 @@ public class Catalog {
             }
         }
         return null; //Return Null if table doesn't exist
+    }
+
+    public boolean tableExists(String name) {
+        return this.tables.stream().anyMatch(table -> table.getName().equals(name));
+    }
+
+    public boolean displayInfo(String name) {
+        Table foundTable = this.tables.stream()
+                                 .filter(table -> table.getName().equals(name))
+                                 .findFirst()
+                                 .orElse(null);
+        if (foundTable != null) {
+            foundTable.displayTable();
+            return true;
+        }
+        return false;
     }
 
     public int calcByteSize(){
