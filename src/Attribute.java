@@ -108,6 +108,9 @@ public class Attribute {
         else if (type.startsWith("integer")) size = Integer.BYTES;
         else if (type.startsWith("double")) size = Double.BYTES;
         else if (type.startsWith("boolean")) size = 1;
+        else{
+            return null;
+        }
 
         return new Attribute(name, type, notNull, primaryKey, unique, size);
     }

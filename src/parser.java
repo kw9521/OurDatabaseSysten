@@ -31,6 +31,12 @@ public class parser {
         List<Attribute> attributes = Arrays.stream(attributesLine.split(",\\s*"))
                                            .map(Attribute::parse)
                                            .collect(Collectors.toList());
+        
+        if(attributes.contains(null)){
+            System.err.println("Invalid datatype! Expected integer, double, boolean, char(N), varchar(N)");
+            System.err.println("ERROR");
+            return;
+        }
     
         // Ensure exactly one primary key exists
         long primaryKeyCount = attributes.stream().filter(Attribute::isPrimaryKey).count();
