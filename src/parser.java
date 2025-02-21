@@ -38,6 +38,22 @@ public class parser {
             System.err.println("No primary key defined\nERROR\n");
             return;
         }
+
+        Set<String> seen = new HashSet<>();
+        Set<String> duplicates = attributes.stream()
+                                .map(Attribute::getName)
+                                .filter(name -> !seen.add(name))
+                                .collect(Collectors.toSet());
+        if(duplicates.size() > 0){
+            String values = "";
+            for(String value : duplicates){
+                values += "\"" + value + "\" ";
+            }
+            values = values.trim();
+            System.err.println("Duplicate attribute name(s) " + values);
+            System.err.println("ERROR");
+            return;
+        }
     
         // Check if table already exists
         if (catalog.getTables().stream().anyMatch(table -> table.getName().equals(tableName))) {
