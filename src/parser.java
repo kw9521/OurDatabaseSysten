@@ -22,6 +22,11 @@ public class parser {
     
         String tableName = tableDef.substring(0, tableNameEnding).trim();
         String attributesLine = tableDef.substring(tableNameEnding + 1, tableDef.length() - 2).trim();
+        if(attributesLine.trim().equals("")){
+            System.err.println("Table with no attributes");
+            System.err.println("ERROR");
+            return;
+        }
     
         List<Attribute> attributes = Arrays.stream(attributesLine.split(",\\s*"))
                                            .map(Attribute::parse)
