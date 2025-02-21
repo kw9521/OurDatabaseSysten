@@ -30,7 +30,7 @@ public class parser {
         // Ensure exactly one primary key exists
         long primaryKeyCount = attributes.stream().filter(Attribute::isPrimaryKey).count();
         if (primaryKeyCount != 1) {
-            System.err.println("Error: Tables must have exactly one primary key.");
+            System.err.println("No primary key defined\nERROR\n");
             return;
         }
     
@@ -44,7 +44,7 @@ public class parser {
         Table table = new Table(tableName, catalog.getNextTableID(), attributes.size(), attributes.toArray(new Attribute[0]));
         catalog.addTable(table);
     
-        System.out.println("Table '" + tableName + "' created successfully.");
+        System.out.println("SUCCESS\n");
     }    
     
     private static void dropTable(String statement, Catalog catalog) {
@@ -69,7 +69,8 @@ public class parser {
         String tableName = tokens[2];
         Table table = catalog.getTableByName(tableName);
         if (table == null) {
-            System.out.println("Table not found: " + tableName);
+            System.out.println("No such table " + tableName);
+            System.out.println("ERROR\n");
             return;
         }
     
@@ -122,6 +123,7 @@ public class parser {
     
                 recordValues.add(parsedValue);
                 nullBitMap.add((byte) 0);
+                System.out.println("SUCCESS\n");
             }
     
             int recordSize = calculateRecordSize(recordValues, table.getAttributes());
@@ -191,12 +193,14 @@ public class parser {
         List<Table> tables = catalog.getTables();
         if (tables.isEmpty()) {
             System.out.println("No tables to display.");
+            System.out.println("SUCCESS\n");
             return;
         }
     
         System.out.println("Tables:\n");
         for (Table table : tables) {
-            System.out.printf("Table Name: %s%nSchema:%n", table.getName());
+            System.out.printf("Table name: %s%nTable schema:%n", table.getName());
+            System.out.println("SUCCESS\n");
     
             for (Attribute attr : table.getAttributes()) {
                 System.out.printf("    %s: %s%s%s%s%n",
@@ -210,10 +214,10 @@ public class parser {
             System.out.printf("Pages: %d%nRecords: %s%n%n", table.getPageCount(), table.getRecordCount());
         }
     
-        System.out.println("SUCCESS");
+        System.out.println("SUCCESS\n");
     }    
 
-    private void select(String normalizedStatement, Catalog catalog, StorageManager storageManager) {
+    private static void select(String normalizedStatement, Catalog catalog, StorageManager storageManager) {
 
         // check if input is in format: select * from foo;
         String[] parts = normalizedStatement.split(" ");
@@ -424,7 +428,7 @@ public class parser {
                 break;
 
             case "select":
-                //select(statement, catalog, storageManager);
+                select(statement, catalog, storageManager);
                 break;
 
             case "delete":
@@ -439,7 +443,7 @@ public class parser {
             if (tokens.length > 2 && tokens[1].equalsIgnoreCase("info")) {
                 String tableName = tokens[2].replaceAll(";", "");
                 if (!catalog.tableExists(tableName)) {
-                    System.out.println("No such table " + tableName + "\nERROR");
+                    System.out.println("No such table " + tableName + "\nERROR\n");
                 } else {
                     boolean found = catalog.displayInfo(tableName);
                     if (found) {

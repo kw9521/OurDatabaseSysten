@@ -30,7 +30,7 @@ public class Main {
         new File(dbLocation + "tables").mkdirs();
     
         String catalogPath = dbLocation + "catalog.bin";
-        System.out.println("Welcome to JottQL\nLooking for catalog at " + catalogPath + "...");
+        System.out.println("Welcome to JottQL\nLooking at " + catalogPath + " for existing db...");
     
         buffer = new PageBuffer(bufferSize);
         catalog = new Catalog(dbLocation, pageSize, bufferSize);
@@ -41,7 +41,10 @@ public class Main {
                 catalog.readCatalog(catalogPath);
                 System.out.println("Catalog loaded successfully.");
             } else {
-                System.out.println("No existing catalog found. Creating a new one.");
+                System.out.println("No existing db found.\nCreating new db at " +catalogPath);
+                System.out.println("New db created successfully");
+                System.out.println("Page Size: "+pageSize);
+                System.out.println("Buffer Size: "+bufferSize);
             }
         } catch (IOException e) {
             System.err.println("Failed to load catalog: " + e.getMessage());

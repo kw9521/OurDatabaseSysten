@@ -280,7 +280,7 @@ public class StorageManager {
     
     // Inserts a record into the correct page
     private void insertRecord(Table table, Record record, int tableNumber, boolean indexFound, int pageIndex, int recIndex) {
-        System.out.println("ADDING RECORD");
+        // System.out.println("ADDING RECORD");
         Page targetPage;
     
         if (table.getPageCount() == 0) {
