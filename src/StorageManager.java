@@ -121,14 +121,6 @@ public class StorageManager {
         catalog.getTable(page.getTableId()).addPage(newPage);
         buffer.updatePage(page);
 
-        // Adjust page numbers in the buffer (shift pages forward)
-        Table table = catalog.getTable(page.getTableId());
-        for (int i = newPage.getPageId(); i < table.getPageCount(); i++) {
-            Page bufferPage = buffer.getPage(page.getTableId(), i);
-            bufferPage.setPageId(i + 1);
-            buffer.updatePage(bufferPage);
-        }
-
         // Handle potential recursive splits if overfull
         if (page.isOverfull())
             splitPage(page);
@@ -143,14 +135,6 @@ public class StorageManager {
         return firstRecInNewPage;
     }
 
-    // Function to load from disk
-
-    // Assuming pageID is the number the page is in the list i.e pageID 1 == the
-    // page in file at index 1
-    public void writePageToDisk(Page page) {
-        copyBinFile("data.bin");
-    }
-
     // Simply appends page to end of file
     public void appendPageToFile(Page page) {
         // Takes in a page object, and writes it to disk
@@ -162,20 +146,6 @@ public class StorageManager {
             raf.write(page.toBinary(table));
             System.out.println("Page written to binary file.");
 
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-    }
-
-    // Creates a temp bin file
-    private void copyBinFile(String srcFile) {
-        String tempPath = "temp" + srcFile; // Temporary file
-
-        try (
-                FileChannel sourceChannel = new FileInputStream(srcFile).getChannel();
-                FileChannel destChannel = new FileOutputStream(tempPath).getChannel()) {
-            destChannel.transferFrom(sourceChannel, 0, sourceChannel.size());
-            System.out.println("File copied successfully.");
         } catch (IOException e) {
             e.printStackTrace();
         }
