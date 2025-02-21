@@ -225,7 +225,8 @@ public class DMLParser {
             //Create a record and insert
             Record currentRecord = new Record(0, parsedValues);
 
-            //Call StorageManager to insert currentRecord(Waiting on it to be implemented) 
+            //Call StorageManager to insert currentRecord
+            storageManager.addRecord(table.getTableID(), currentRecord);
 
             // Add primary key value to set
             primaryKeyValues.add(primaryKeyValue);
