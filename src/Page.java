@@ -16,6 +16,7 @@ public class Page {
     private List<Record> records;
     private int recordCount;
     private boolean updated;
+    private int nextPageID;
 
     public Page(int pageId, int tableId, boolean updated){
         this.pageId = pageId;
@@ -23,6 +24,7 @@ public class Page {
         this.records = new ArrayList<>();
         this.recordCount = 0;
         this.updated = updated;
+        this.nextPageID = 0; //IMPLEMENT
     }
 
     public void addRecord(Record record){
@@ -92,7 +94,7 @@ public class Page {
             byte[] recordBytes = record.toBinary(table.getAttributes());
             buffer.put(recordBytes);
         }
-
+        buffer.putInt(this.nextPageID);
         return buffer.array();
     }
 }

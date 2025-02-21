@@ -172,6 +172,7 @@ public class DMLParser {
 
             //Parse each tokens to it corresponding type
             ArrayList<Object> parsedValues = new ArrayList<>();
+            ArrayList<Attribute> parsedAttributes = new ArrayList<>();
             for (int i = 0; i < tokens.size(); i++) {
                 Attribute attr = attributes.get(i);
                 String value = tokens.get(i);
@@ -186,21 +187,34 @@ public class DMLParser {
                 }
 
                 try {
-                    switch (attr.getType()) {
+                    switch (attr.getType().toLowerCase()) {
                         case "integer":
                             parsedValues.add(Integer.parseInt(value));
+                            parsedAttributes.add(attr);
                             break;
                         case "double":
                             parsedValues.add(Double.parseDouble(value));
+                            parsedAttributes.add(attr);
                             break;
                         case "boolean":
                             parsedValues.add(Boolean.parseBoolean(value));
+                            parsedAttributes.add(attr);
                             break;
                         case "char":
-                            //How to parse to char
+                            if(attr.getSize() < value.length()){
+                                System.err.println("Error: Invalid length for type char, expected less than '" + attr.getSize() + "' got " + value.length() + ".");
+                                return;
+                            }
+                            parsedValues.add(value);
+                            parsedAttributes.add(attr);
                             break;
                         case "varchar":
-                            //How to parse to varchar
+                            if(attr.getSize() < value.length()){
+                                System.err.println("Error: Invalid length for type varchar, expected less than '" + attr.getSize() + "' got " + value.length() + ".");
+                                return;
+                            }
+                            parsedValues.add(value);
+                            parsedAttributes.add(attr);
                             break;
                         default:
                             System.err.println("Error: Unsupported attribute type '" + attr.getType() + "'.");
@@ -208,6 +222,7 @@ public class DMLParser {
                     }
                 } catch (Exception e) {
                     System.err.println("Error: Invalid value for attribute '" + attr.getName() + "'.");
+                    e.printStackTrace();
                     return;
                 }
             }
@@ -224,7 +239,7 @@ public class DMLParser {
             }
 
             //Create a record and insert
-            Record currentRecord = new Record(0, parsedValues);
+            Record currentRecord = new Record(parsedValues, parsedAttributes);
 
             //Call StorageManager to insert currentRecord
             storageManager.addRecord(table.getTableID(), currentRecord);

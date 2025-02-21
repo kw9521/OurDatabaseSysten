@@ -5,13 +5,26 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class Record {
-    private int size;
+    private int size; //Size in bytes of the record excluding additional information to be stored such as nullbitmap
     private ArrayList<Object> data;
+    private ArrayList<Attribute> attributes;
     private ArrayList<Byte> nullBitMap; // Track attribute values
 
-    public Record(int size, ArrayList<Object> data){
-        this.size = size;
+    public Record(ArrayList<Object> data, ArrayList<Attribute> attributes){
         this.data = data;
+        this.attributes = attributes;
+
+        int size = 0;
+        for(int i = 0; i < attributes.size(); i++){
+            if(attributes.get(i).getType() == "varchar"){
+                size += String.valueOf(data.get(i)).length();
+            }
+            else{
+                size += attributes.get(i).getSize();
+            }
+        }
+
+        this.size = size;
     }
 
     public int addValue(Object value, int indexInRecord, Attribute attr) {
@@ -76,11 +89,15 @@ public class Record {
     public byte[] toBinary(List<Attribute> attributes) {
         ByteBuffer recData = ByteBuffer.allocate(this.size);
         
+        //Need to store the size of the null array to know how many bytes to read from file
+        recData.putInt(nullBitMap.size());
+
         // Convert nullBitMap list to byte array
         byte[] bitMap = new byte[nullBitMap.size()];
         for (int i = 0; i < nullBitMap.size(); i++) {
             bitMap[i] = nullBitMap.get(i);
         }
+        //Store null byte array
         recData.put(bitMap);
 
         int tupleIndex = 0;

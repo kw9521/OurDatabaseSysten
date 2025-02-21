@@ -121,7 +121,7 @@ public class Attribute {
         buffer.put((byte) (this.isNullable ? 1 : 0));
         buffer.put((byte) (this.primaryKey ? 1 : 0));
         buffer.put((byte) (this.unique ? 1 : 0));
-        // buffer.putInt(this.size); Not needed for now may add back later
+        buffer.putInt(this.size);
     }
 
     public static Attribute readFromBuffer(ByteBuffer buffer) {
@@ -152,6 +152,8 @@ public class Attribute {
         byte[] typeBytes = this.type.getBytes(StandardCharsets.UTF_8);
         totalSize += typeBytes.length;
         totalSize += 4; //For the int length of the string
+
+        totalSize += 4; //For the int size of the attribute
         
         totalSize += 3; //For the 3 boolean values
         return totalSize;

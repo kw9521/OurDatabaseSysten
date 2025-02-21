@@ -112,14 +112,6 @@ public class StorageManager {
         return firstRecInNewPage;
     }
 
-
-    // Function to load from disk
-
-    // Assuming pageID is the number the page is in the list i.e pageID 1 == the page in file at index 1
-    public void writePageToDisk(Page page){
-        copyBinFile("data.bin");
-    }
-
     // Simply appends page to end of file
     public void appendPageToFile(Page page){
         // Takes in a page object, and writes it to disk
@@ -131,21 +123,6 @@ public class StorageManager {
             raf.write(page.toBinary(table));
             System.out.println("Page written to binary file.");
 
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-    }
-
-    // Creates a temp bin file
-    private void copyBinFile(String srcFile){
-        String tempPath = "temp" + srcFile; // Temporary file
-
-        try (
-            FileChannel sourceChannel = new FileInputStream(srcFile).getChannel();
-            FileChannel destChannel = new FileOutputStream(tempPath).getChannel()
-        ) {
-            destChannel.transferFrom(sourceChannel, 0, sourceChannel.size());
-            System.out.println("File copied successfully.");
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -179,27 +156,14 @@ public class StorageManager {
         if (!page.isUpdated()) return;
 
         try (RandomAccessFile fileOut = new RandomAccessFile(Main.getDBLocation() + 
-                "/tables/" + page.getTableId() + ".bin", "rw")) { // Open the file
+                "/" + page.getTableId() + ".bin", "rw")) { // Open the file
                     
             Table table = Main.getCatalog().getTable(page.getTableId());
             byte[] data = page.toBinary(table);
-            int[] pageLocations = table.getPageLocations();
-            int index = -1;
             
-            for (int i = 0; i < table.getPageCount(); i++) { // Find the page in the table
-                if (pageLocations[i] == page.getPageId()) {
-                    index = i;
-                    break;
-                }
-            }
+            fileOut.seek((page.getPageId() * Main.getPageSize()) + 4);
+            fileOut.write(data);
             
-            if (index < 0) { // Page not found
-                System.err.println("Can't write page: No pages in table");
-                return;
-            }
-            
-            fileOut.seek(Integer.BYTES + (index * Main.getPageSize())); // Seek to the page location
-            fileOut.write(data); // Write the page data
             System.out.println("Page data saved in binary format at " + fileOut);
         } catch (IOException e) {
             e.printStackTrace(); 
@@ -260,7 +224,7 @@ public class StorageManager {
                         int typeNameLength = ByteBuffer.wrap(data, offset, 4).getInt();
                         offset += 4;
 
-                        // Get the tpye name as a string
+                        // Get the type name as a string
                         byte[] typeNameBytes = Arrays.copyOfRange(data, offset, offset + typeNameLength);
                         String typeName = new String(typeNameBytes, StandardCharsets.UTF_8);
                         offset += typeNameLength;
@@ -277,8 +241,12 @@ public class StorageManager {
                         boolean isUnique = data[offset] == 1;
                         offset += 1;
 
+                        // Get the size
+                        int size = ByteBuffer.wrap(data, offset, 4).getInt();
+                        offset += 4;
+
                         // Create the attribute object
-                        Attribute attr = new Attribute(attributeName, typeName, isNullable, isPrimary, isUnique, 0);
+                        Attribute attr = new Attribute(attributeName, typeName, isNullable, isPrimary, isUnique, size);
                         attributes.add(attr);
                     }
 
