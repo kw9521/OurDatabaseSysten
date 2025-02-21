@@ -118,7 +118,7 @@ public class Table {
     }
 
     public void displayTable(){
-        System.out.printf("Table Name: %s%nSchema:%n", getName());
+        System.out.printf("Table Name: %s%nTable schema:%n", getName());
     
         for (Attribute attr : this.getAttributes()) {
             System.out.printf("    %s: %s%s%s%s%n",
