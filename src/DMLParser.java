@@ -1,6 +1,8 @@
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import javax.naming.directory.AttributeInUseException;
 
@@ -33,7 +35,7 @@ public class DMLParser {
             switch (command) {
                 case "insert":
                     if (tokens.length > 1 && tokens[1].startsWith("into")) {
-                        insertInto(normalizedStatement);
+                        insertInto(normalizedStatement, catalog, storageManager);
                     } else {
                         throw new DMLParserException("Invalid insert syntax: " + statement);
                     }
@@ -68,9 +70,166 @@ public class DMLParser {
         }
     }
 
-    private void insertInto(String statement) {
-        // Implement
+    private void insertInto(String statement, Catalog catalog, StorageManager storageManager) {
         System.out.println("Inserting into table...");
+        
+        //Replace multiple consecutive whitespace with one. 
+        statement = statement.replaceAll("\s+", " ").strip();
+
+        int valuesIndex = statement.toLowerCase().indexOf(" values ");
+        if (valuesIndex == -1) {
+            System.err.println("Syntax error: Missing 'VALUES' keyword.");
+            return;
+        }
+
+        //Validate that table exist in database 
+        String tableName = statement.substring(11, valuesIndex).strip();
+        Table table = catalog.getTableByName(tableName);
+        if (table == null) {
+            System.err.println("Error: Table '" + tableName + "' does not exist.");
+            return;
+        }
+
+        //Extract Tuples 
+        String valuesSection = statement.substring(valuesIndex + 7).strip();
+        List<String> extractedTuples = new ArrayList<>();
+        int start = -1; 
+        int end = -1;   
+
+        for (int i = 0; i < valuesSection.length(); i++) {
+            char c = valuesSection.charAt(i);
+
+            if (c == '(') {
+                start = i + 1;  
+            } else if (c == ')' && start != -1) {
+                end = i;  
+                extractedTuples.add(valuesSection.substring(start, end).trim());
+                start = -1; 
+            }
+        }
+
+        //Get all the attributes of the table
+        List<Attribute> attributes = table.getAttributes();
+        int attributeCount = attributes.size();
+
+        // Get all existing records for primary key validation
+        List<List<Object>> existingRecords = storageManager.getRecords(table.getTableID());
+        Set<Object> primaryKeyValues = new HashSet<>();
+
+        // Identify the primary key attribute index, then store existing primary key values
+        int primaryKeyIndex = -1;
+        for (int i = 0; i < attributes.size(); i++) {
+            if (attributes.get(i).isPrimaryKey()) {
+                primaryKeyIndex = i;
+                break;
+            }
+        }
+        for (List<Object> record : existingRecords) {
+            primaryKeyValues.add(record.get(primaryKeyIndex));
+        }
+
+        //Process Each Tuples 
+        for(String tuple: extractedTuples){
+            //Parese each tuples into lists
+            List<String> tokens = new ArrayList<>();
+            String currentToken = "";
+            boolean inQuotes = false;
+            for (int i = 0; i < tuple.length(); i++) {
+                char c = tuple.charAt(i);
+                if (c == '"') {
+                    if (!inQuotes && !currentToken.isEmpty()) {
+                        tokens.add(currentToken);
+                        currentToken = "";
+                    }
+                    inQuotes = !inQuotes; 
+                    continue; 
+                }
+                else if (c == ' ' && !inQuotes) {
+                    if (!currentToken.isEmpty()) {
+                        tokens.add(currentToken);
+                        currentToken = "";
+                    }
+                } 
+                else {
+                    if (i > 0 && Character.isDigit(tuple.charAt(i - 1)) && c == '"') {
+                        tokens.add(currentToken);
+                        currentToken = "";
+                    }
+                    currentToken += c;
+                }
+            }
+
+            if (!currentToken.isEmpty()) {
+                tokens.add(currentToken);
+            }
+
+            //Handle when input values does not match table attribute
+            if(tokens.size() != attributeCount){
+                System.err.println("Error: Mismatch in number of values and attributes.");
+                return;
+            }
+
+            //Parse each tokens to it corresponding type
+            ArrayList<Object> parsedValues = new ArrayList<>();
+            for (int i = 0; i < tokens.size(); i++) {
+                Attribute attr = attributes.get(i);
+                String value = tokens.get(i);
+                
+                if(value == null){
+                    if(!attr.isNullable()){
+                        System.err.println("Error: Attribute '" + attr.getName() + "' cannot be NULL.");
+                    return;
+                    }
+                    parsedValues.add(null);
+                    continue;
+                }
+
+                try {
+                    switch (attr.getType()) {
+                        case "integer":
+                            parsedValues.add(Integer.parseInt(value));
+                            break;
+                        case "double":
+                            parsedValues.add(Double.parseDouble(value));
+                            break;
+                        case "boolean":
+                            parsedValues.add(Boolean.parseBoolean(value));
+                            break;
+                        case "char":
+                            //How to parse to char
+                            break;
+                        case "varchar":
+                            //How to parse to varchar
+                            break;
+                        default:
+                            System.err.println("Error: Unsupported attribute type '" + attr.getType() + "'.");
+                            return;
+                    }
+                } catch (Exception e) {
+                    System.err.println("Error: Invalid value for attribute '" + attr.getName() + "'.");
+                    return;
+                }
+            }
+
+            //Handle Primary Key
+            Object primaryKeyValue = parsedValues.get(primaryKeyIndex);
+            if (primaryKeyValue == null) {
+                System.err.println("Error: Primary key '" + attributes.get(primaryKeyIndex).getName() + "' cannot be NULL.");
+                return;
+            }
+            if (primaryKeyValues.contains(primaryKeyValue)) {
+                System.err.println("Error: Duplicate primary key value '" + primaryKeyValue + "'.");
+                return;
+            }
+
+            //Create a record and insert
+            Record currentRecord = new Record(0, parsedValues);
+
+            //Call StorageManager to insert currentRecord(Waiting on it to be implemented) 
+
+            // Add primary key value to set
+            primaryKeyValues.add(primaryKeyValue);
+        }
     }
 
     private static void displaySchema(String normalizedStatement, Catalog catalog) {
