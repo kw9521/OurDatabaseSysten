@@ -71,6 +71,7 @@ public class Main {
                 if (inputLine == null || inputLine.trim().equalsIgnoreCase("quit")) {
                     // IMPLEMENT
                     storageManager.writeCatalogToFile(catalog);
+                    buffer.writeBufferToHardware();
                     break;
                 }
         
