@@ -153,8 +153,14 @@ public class parser {
                         expected += attr.getTypeFancy() + " ";
                     }
                     expected = expected.substring(0, expected.length() - 1); //Remove empty space for formatting
-                    String acutalType = getActualType(value);
-                    System.err.println(currentRow + "Invalid data types: expected (" + expected + ")" + " got (" + acutalType + ")");
+                    String got = "";
+                    for(int index = 0; index < values.length; index++){
+                        got += getActualType(values[index]);
+                        if(index != values.length-1){
+                            got += " ";
+                        }
+                    }
+                    System.err.println(currentRow + "Invalid data types: expected (" + expected + ")" + " got (" + got + ")");
                     return;
                 }
                 
