@@ -108,7 +108,12 @@ public class parser {
                 // Parse value based on attribute type
                 Object parsedValue = parseValueBasedOnType(value, attribute);
                 if (parsedValue == null) {
-                    System.err.println("Error parsing value: " + value + " for attribute: " + attribute.getName());
+                    String expected = "";
+                    for(Attribute attr : table.getAttributes()){
+                        expected += attr.getType() + " ";
+                    }
+                    expected = expected.substring(0, expected.length() - 1); //Remove empty space for formatting
+                    System.err.println("Invalid data types: expected (" + expected + ")");
                     return;
                 }
                 
@@ -140,15 +145,20 @@ public class parser {
     private static Object parseValueBasedOnType(String value, Attribute attribute) {
         value = value.replaceAll("^\"|\"$", "");
     
-        switch (attribute.getType().toLowerCase()) {
-            case "integer": return Integer.parseInt(value);
-            case "double": return Double.parseDouble(value);
-            case "boolean": return Boolean.parseBoolean(value);
-            case "char":
-            case "varchar": return value;
-            default:
-                System.err.println("Unsupported attribute type: " + attribute.getType());
-                return null;
+        try{
+            switch (attribute.getType().toLowerCase()) {
+                case "integer": return Integer.parseInt(value);
+                case "double": return Double.parseDouble(value);
+                case "boolean": return Boolean.parseBoolean(value);
+                case "char":
+                case "varchar": return value;
+                default:
+                    System.err.println("Unsupported attribute type: " + attribute.getType());
+                    return null;
+            }
+        }
+        catch(Exception e){
+            return null;
         }
     }
     

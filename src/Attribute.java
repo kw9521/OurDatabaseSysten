@@ -39,6 +39,9 @@ public class Attribute {
     }
 
     public String getType(){
+        if(this.type.equals("char") || this.type.equals("varchar")){
+            return this.type + "(" + this.size + ")";
+        }
         return this.type;
     }
 
