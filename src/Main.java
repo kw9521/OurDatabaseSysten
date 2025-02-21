@@ -22,6 +22,7 @@ public class Main {
         shutdownDatabase();
     }
     
+    // if catalog exists, then keep page size, update buffer size
     private static void initializeDatabase(String[] args) {
         dbLocation = args[0].endsWith("/") ? args[0] : args[0] + "/";
         pageSize = Integer.parseInt(args[1]);
@@ -39,7 +40,10 @@ public class Main {
         try {
             if (new File(catalogPath).exists()) {
                 catalog.readCatalog(catalogPath);
-                System.out.println("Catalog loaded successfully.");
+                System.out.println("Restarting the database...");
+                System.out.println("\tIgnoring provided pages size, using stored page size");
+                System.out.println("Page Size: "+pageSize);
+                System.out.println("Buffer Size: "+bufferSize);
             } else {
                 System.out.println("No existing db found.\nCreating new db at " +catalogPath);
                 System.out.println("New db created successfully");

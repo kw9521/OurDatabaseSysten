@@ -111,7 +111,7 @@ public class parser {
                     System.err.println("Error parsing value: " + value + " for attribute: " + attribute.getName());
                     return;
                 }
-    
+                
                 // Validate char and varchar lengths
                 if (parsedValue instanceof String) {
                     int length = ((String) parsedValue).length();
@@ -134,7 +134,7 @@ public class parser {
             }
         }
     
-        System.out.println("Record(s) inserted successfully into table: " + tableName);
+        // System.out.println("Record(s) inserted successfully into table: " + tableName);
     }    
     
     private static Object parseValueBasedOnType(String value, Attribute attribute) {
@@ -187,7 +187,7 @@ public class parser {
     }
 
     private static void displaySchema(Catalog catalog) {
-        System.out.printf("\nDB Location: %s%nPage Size: %d%nBuffer Size: %d%n%n", 
+        System.out.printf("DB Location: %s%nPage Size: %d%nBuffer Size: %d%n%n", 
                           catalog.getDbLocation(), catalog.getPageSize(), catalog.getBufferSize());
     
         List<Table> tables = catalog.getTables();
@@ -196,7 +196,8 @@ public class parser {
             System.out.println("SUCCESS\n");
             return;
         }
-    
+        
+        // cannot figure out why display schema is also displaying number of records one by one
         System.out.println("Tables:\n");
         for (Table table : tables) {
             System.out.printf("Table name: %s%nTable schema:%n", table.getName());
