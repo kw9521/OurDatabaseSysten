@@ -51,7 +51,6 @@ public class Catalog {
     public void addTable(Table table){
         this.tables.add(table);
         this.tableCount++;
-        System.out.println("Added table: " + table.getName());
     }
 
     /**

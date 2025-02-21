@@ -1,3 +1,4 @@
+import java.nio.channels.Pipe.SourceChannel;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -71,7 +72,6 @@ public class DMLParser {
     }
 
     private void insertInto(String statement, Catalog catalog, StorageManager storageManager) {
-        System.out.println("Inserting into table...");
         
         //Replace multiple consecutive whitespace with one. 
         statement = statement.replaceAll("\s+", " ").strip();
@@ -86,7 +86,8 @@ public class DMLParser {
         String tableName = statement.substring(11, valuesIndex).strip();
         Table table = catalog.getTableByName(tableName);
         if (table == null) {
-            System.err.println("Error: Table '" + tableName + "' does not exist.");
+            System.out.println("No such table " + tableName);
+            System.out.println("ERROR\n");
             return;
         }
 
@@ -234,21 +235,21 @@ public class DMLParser {
     }
 
     private static void displaySchema(String normalizedStatement, Catalog catalog) {
-        System.out.println("\nDB Location: " + catalog.getDbLocation());
+        System.out.println("DB Location: " + catalog.getDbLocation());
         System.out.println("Page Size: " + catalog.getPageSize());
         System.out.println("Buffer Size: " + catalog.getBufferSize() + "\n");
 
         List<Table> tables = catalog.getTables();
         if (tables == null || tables.isEmpty()) {
-            System.out.println("No tables to display.\n");
-            System.out.println("SUCCESS");
+            System.out.println("No tables to display");
+            System.out.println("SUCCESS\n");
             return;
         }
 
         System.out.println("Tables:\n");
         for (Table table : tables) {
-            System.out.println("Table Name: " + table.getName());
-            System.out.println("Table Schema:");
+            System.out.println("Table name: " + table.getName());
+            System.out.println("Table schema:");
 
             for (Attribute attr : table.getAttributes()) {
                 StringBuilder attributeDetails = new StringBuilder();
@@ -281,7 +282,8 @@ public class DMLParser {
         
         List<Table> tables = catalog.getTables();
         if (tables == null || tables.isEmpty()) {
-            System.out.println("Table " + tableName + "not found.");
+            System.out.println("No such table " + tableName);
+            System.out.println("ERROR\n");
             return;
         }
     
@@ -303,13 +305,13 @@ public class DMLParser {
     
                 System.out.println("Pages: " + table.getPageCount());
                 System.out.println("Records: " + table.getRecordCount());
-                System.out.println("SUCCESS");
+                System.out.println("SUCCESS\n");
                 return;
             }
         }
         
         System.out.println("No such table " + tableName);
-        System.out.println("ERROR");
+        System.out.println("ERROR\n");
     }    
 
     private void select(String normalizedStatement, Catalog catalog, StorageManager storageManager) {
@@ -320,14 +322,17 @@ public class DMLParser {
             System.out.println("Invalid command format.");
             return;
         }
+        
 
-        String tableName = parts[3];
+        String tableStr = parts[3];
+        // get rid of the ";"
+        String tableName = tableStr.substring(0, tableStr.length()-1);
         Table selectedTable = catalog.getTableByName(tableName);
 
         // check if table exists...does not exist
         if (selectedTable == null) {
             System.out.println("No such table " + tableName);
-            System.out.println("ERROR");
+            System.out.println("ERROR\n");
             return;
         }
 

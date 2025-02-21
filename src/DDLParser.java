@@ -116,7 +116,8 @@ public class DDLParser {
 
         // Ensure exactly one primary key exists
         if (primaryKey == null) {
-            System.err.println("Error: A primary key must be specified.");
+            System.out.println("No primary key defined");
+            System.out.println("ERROR\n");
             return;
         }
 
