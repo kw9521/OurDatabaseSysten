@@ -133,7 +133,8 @@ public class parser {
                         got += " ";
                     }
                 }
-                System.out.println(currentRow + " Too many attributes: expect(" + expected + ") got (" + got + ")");
+                System.out.println("\n"+currentRow + " Too many attributes: expect(" + expected + ") got (" + got + ")");
+                System.out.println("ERROR\n");
                 return;
             }
     
@@ -166,7 +167,8 @@ public class parser {
                             got += " ";
                         }
                     }
-                    System.err.println(currentRow + "Invalid data types: expected (" + expected + ")" + " got (" + got + ")");
+                    System.err.println("\n"+currentRow + "Invalid data types: expected (" + expected + ")" + " got (" + got + ")");
+                    System.out.println("ERROR\n");
                     return;
                 }
                 
@@ -367,9 +369,8 @@ public class parser {
         totalLength += attrOfSelectedTable.length + 1;
 
         // first "-------" line
+        System.out.println();
         System.out.println("-".repeat(totalLength));
-
-
 
         // print the attribute names
         // print "|" at in the beginning
