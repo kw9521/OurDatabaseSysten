@@ -62,7 +62,7 @@ public class PageBuffer {
             System.out.println("Page " + page.getPageId() + " written successfully to " + fileName);
         } catch (IOException e) {
             System.err.println("Error writing page " + page.getPageId() + " to file: " + fileName);
-            e.printStackTrace();
+            // e.printStackTrace();
         }
     }
 
@@ -84,7 +84,7 @@ public class PageBuffer {
                     fileOut.write(table.getPageCount());
                     tableUpdatedArray[tableNum] = 1; // Mark the table as updated
                 } catch (IOException e) {
-                    e.printStackTrace();
+                    // e.printStackTrace();
                 }
             }
             

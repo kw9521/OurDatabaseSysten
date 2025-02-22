@@ -74,7 +74,7 @@ public class StorageManager {
             return page;
         } catch (IOException e) {
             System.err.println("Error loading page " + pageNumber + " from file: " + fileName);
-            e.printStackTrace();
+            // e.printStackTrace();
             return null;
         }
     }
@@ -147,7 +147,7 @@ public class StorageManager {
             System.out.println("Page written to binary file.");
 
         } catch (IOException e) {
-            e.printStackTrace();
+            // e.printStackTrace();
         }
     }
 
@@ -180,7 +180,7 @@ public class StorageManager {
             fileOut.write(data); // Write the page data
             System.out.println("Page data saved in binary format at " + fileOut);
         } catch (IOException e) {
-            e.printStackTrace();
+            // e.printStackTrace();
         }
     }
 

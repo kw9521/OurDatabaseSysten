@@ -111,7 +111,7 @@ public class parser {
         String[] individualValueSets = valuesPart.split("\\),\\s*\\(");
         for (String valueSet : individualValueSets) {
             valueSet = valueSet.trim().replaceAll("^\\(|\\)$", ""); // Remove outer parentheses
-            String currentRow = "Row (" + valueSet + ") :";
+            String currentRow = "Row (" + valueSet + "):";
             String[] values = valueSet.split(" ");
     
             if (values.length != table.getAttributesCount()) {
@@ -214,7 +214,7 @@ public class parser {
             }
         }
         catch(Exception e){
-            e.printStackTrace();
+            // e.printStackTrace();
             return null;
         }
     }
