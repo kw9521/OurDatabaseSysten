@@ -23,8 +23,8 @@ public class parser {
         String tableName = tableDef.substring(0, tableNameEnding).trim();
         String attributesLine = tableDef.substring(tableNameEnding + 1, tableDef.length() - 2).trim();
         if(attributesLine.trim().equals("")){
-            System.err.println("Table with no attributes");
-            System.err.println("ERROR");
+            System.err.println("\nTable with no attributes");
+            System.err.println("ERROR\n");
             return;
         }
     
@@ -33,15 +33,20 @@ public class parser {
                                            .collect(Collectors.toList());
         
         if(attributes.contains(null)){
-            System.err.println("Invalid datatype! Expected integer, double, boolean, char(N), varchar(N)");
+            String invalidType = attributesLine.split(",\\s*")[attributes.indexOf(null)].split(" ")[1];
+            System.err.println("Invalid datatype \"" + invalidType + "\"");
             System.err.println("ERROR");
             return;
         }
     
         // Ensure exactly one primary key exists
         long primaryKeyCount = attributes.stream().filter(Attribute::isPrimaryKey).count();
-        if (primaryKeyCount != 1) {
+        if (primaryKeyCount == 0) {
             System.err.println("No primary key defined\nERROR\n");
+            return;
+        } else if (primaryKeyCount > 1) {
+            System.err.println("More than one primarykey");
+            System.out.println("ERROR\n");
             return;
         }
 
@@ -56,14 +61,15 @@ public class parser {
                 values += "\"" + value + "\" ";
             }
             values = values.trim();
-            System.err.println("Duplicate attribute name(s) " + values);
-            System.err.println("ERROR");
+            System.err.println("Duplicate attribute name(s) \"" + values + "\"");
+            System.err.println("ERROR\n");
             return;
         }
     
         // Check if table already exists
         if (catalog.getTables().stream().anyMatch(table -> table.getName().equals(tableName))) {
-            System.err.println("Table of name " + tableName + " already exists.");
+            System.err.println("Table of name " + tableName + " already exists");
+            System.err.println("ERROR\n");
             return;
         }
     
@@ -71,7 +77,7 @@ public class parser {
         Table table = new Table(tableName, catalog.getNextTableID(), attributes.size(), attributes.toArray(new Attribute[0]));
         catalog.addTable(table);
     
-        System.out.println("SUCCESS\n");
+        System.out.println("\nSUCCESS\n");
     }    
     
     private static void dropTable(String statement, Catalog catalog) {
@@ -168,7 +174,10 @@ public class parser {
                 if (parsedValue instanceof String) {
                     int length = ((String) parsedValue).length();
                     if ((attribute.getType().equals("char") || attribute.getType().equals("varchar")) && length > attribute.getSize()) {
-                        System.err.println("Error: Expected max length of " + attribute.getSize() + " for attribute " + attribute.getName());
+                        System.err.println("row (" + valueSet + "): " + attribute.getType() + "(" + 
+                            attribute.getSize() + ") can only accept " + attribute.getSize() + " " + 
+                            attribute.getType() + "s; " + value + " is " + value.length());
+                        System.err.println("ERROR\n");
                         return;
                     }
                 }
@@ -183,9 +192,8 @@ public class parser {
             if (!storageManager.addRecord(catalog, newRecord, table.getTableID())) {
                 return;
             }
-
-            System.out.println("SUCCESS\n");
         }
+        System.out.println("SUCCESS\n");
     
         // System.out.println("Record(s) inserted successfully into table: " + tableName);
     }    
@@ -268,7 +276,6 @@ public class parser {
         System.out.println("Tables:\n");
         for (Table table : tables) {
             System.out.printf("Table name: %s%nTable schema:%n", table.getName());
-            System.out.println("SUCCESS\n");
     
             for (Attribute attr : table.getAttributes()) {
                 System.out.printf("    %s: %s%s%s%s%n",
@@ -383,18 +390,17 @@ public class parser {
         // print "|" at the end
         
         for (Attribute attr : attrOfSelectedTable) {
-            int maxAttrLength = maxAttributeLength.getOrDefault(attr.getName(), 0);
-            maxAttrLength = Math.max(maxAttrLength, attr.getName().length()); // Ensure it's at least as long as the attribute name
-        
+            int maxAttrLength = maxAttributeLength.get(attr.getName()) + 1; // 14.5 = length4 +1 =5
+
             int spacesFront = 0;
             int spacesBack = 0;
-        
+
             if (maxAttrLength % 2 == 0) {
-                spacesFront = (maxAttrLength - attr.getName().length()) / 2;
-                spacesBack = spacesFront;
+                spacesFront = ((maxAttrLength - attr.getName().length()) / 2 ) + 1;
+                spacesBack = maxAttrLength - spacesFront - attr.getName().length();
             } else {
                 int spaces = maxAttrLength - attr.getName().length(); 
-                spacesFront = spaces / 2 + 1;  
+                spacesFront = spaces / 2;
                 spacesBack = spaces - spacesFront;
             }
         
