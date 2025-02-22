@@ -63,7 +63,7 @@ public class parser {
     
         // Check if table already exists
         if (catalog.getTables().stream().anyMatch(table -> table.getName().equals(tableName))) {
-            System.err.println("Error: Table '" + tableName + "' already exists.");
+            System.err.println("Table of name " + tableName + " already exists.");
             return;
         }
     
