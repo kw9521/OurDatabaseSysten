@@ -41,7 +41,6 @@ public class Main {
             if (new File(catalogPath).exists()) {
                 catalog.readCatalog(catalogPath);
                 System.out.println("Restarting the database...");
-                System.out.println("\tIgnoring provided pages size, using stored page size");
                 System.out.println("Page Size: "+pageSize);
                 System.out.println("Buffer Size: "+bufferSize);
             } else {
@@ -50,6 +49,7 @@ public class Main {
                 System.out.println("Page Size: "+pageSize);
                 System.out.println("Buffer Size: "+bufferSize);
             }
+
         } catch (IOException e) {
             System.err.println("Failed to load catalog: " + e.getMessage());
             System.exit(1);
