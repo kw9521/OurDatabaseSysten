@@ -59,7 +59,7 @@ public class PageBuffer {
         try (RandomAccessFile fileOut = new RandomAccessFile(fileName, "rw")) {
             fileOut.seek(address);
             fileOut.write(data);
-            System.out.println("Page " + page.getPageId() + " written successfully to " + fileName);
+            // System.out.println("Page " + page.getPageId() + " written successfully to " + fileName);
         } catch (IOException e) {
             System.err.println("Error writing page " + page.getPageId() + " to file: " + fileName);
             // e.printStackTrace();

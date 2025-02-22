@@ -232,9 +232,11 @@ public class StorageManager {
                 if (comparison == 0) {
                     if(attr.isPrimaryKey()){
                         System.err.println("row (" + record.getData().get(i) + "): Duplicate primarykey for row (" + record.getData().get(i) + ")");
+                        System.out.println("ERROR\n");
                     }
                     else{
                         System.err.println("row (" + record.getData().get(i) + "): Duplicate unique value for row (" + record.getData().get(i) + ")");
+                        System.out.println("ERROR\n");
                     }
                     return true; // Constraint violation
                 }

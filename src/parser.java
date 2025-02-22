@@ -35,7 +35,7 @@ public class parser {
         if(attributes.contains(null)){
             String invalidType = attributesLine.split(",\\s*")[attributes.indexOf(null)].split(" ")[1];
             System.err.println("Invalid datatype \"" + invalidType + "\"");
-            System.err.println("ERROR");
+            System.err.println("ERROR\n");
             return;
         }
     
@@ -61,14 +61,14 @@ public class parser {
                 values += "\"" + value + "\" ";
             }
             values = values.trim();
-            System.err.println("Duplicate attribute name(s) \"" + values + "\"");
+            System.err.println("Duplicate attribute name " + values);
             System.err.println("ERROR\n");
             return;
         }
     
         // Check if table already exists
         if (catalog.getTables().stream().anyMatch(table -> table.getName().equals(tableName))) {
-            System.err.println("Table of name " + tableName + " already exists");
+            System.err.println("\nTable of name " + tableName + " already exists");
             System.err.println("ERROR\n");
             return;
         }
@@ -117,7 +117,7 @@ public class parser {
         String[] individualValueSets = valuesPart.split("\\),\\s*\\(");
         for (String valueSet : individualValueSets) {
             valueSet = valueSet.trim().replaceAll("^\\(|\\)$", ""); // Remove outer parentheses
-            String currentRow = "Row (" + valueSet + "):";
+            String currentRow = "row (" + valueSet + "):";
             String[] values = valueSet.split(" ");
     
             if (values.length != table.getAttributesCount()) {
@@ -167,7 +167,7 @@ public class parser {
                             got += " ";
                         }
                     }
-                    System.err.println("\n"+currentRow + "Invalid data types: expected (" + expected + ")" + " got (" + got + ")");
+                    System.err.println("\n"+currentRow + " Invalid data types: expected (" + expected + ")" + " got (" + got + ")");
                     System.out.println("ERROR\n");
                     return;
                 }
@@ -176,7 +176,7 @@ public class parser {
                 if (parsedValue instanceof String) {
                     int length = ((String) parsedValue).length();
                     if ((attribute.getType().equals("char") || attribute.getType().equals("varchar")) && length > attribute.getSize()) {
-                        System.err.println("row (" + valueSet + "): " + attribute.getType() + "(" + 
+                        System.err.println("\nrow (" + valueSet + "): " + attribute.getType() + "(" + 
                             attribute.getSize() + ") can only accept " + attribute.getSize() + " " + 
                             attribute.getType() + "s; " + value + " is " + value.length());
                         System.err.println("ERROR\n");
