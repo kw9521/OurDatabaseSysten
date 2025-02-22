@@ -469,8 +469,10 @@ public class parser {
             case "quit":
             case "<quit>":
                 System.out.println("\nSafely shutting down the database...");
+                System.out.println("Purging page buffer...");
                 Main.writeBuffer();
                 try {
+                    System.out.println("Saving catalog...\n");
                     Main.writeCatalogToFile(dbDirectory + "/catalog.bin");
                 } catch (IOException e) {
                     System.err.println("Error while saving catalog: " + e.getMessage());

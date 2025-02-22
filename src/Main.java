@@ -40,7 +40,9 @@ public class Main {
         try {
             if (new File(catalogPath).exists()) {
                 catalog.readCatalog(catalogPath);
+                System.out.println("Database found...");
                 System.out.println("Restarting the database...");
+                System.out.println("    Ignoring provided pages size, using stored page size\n");
                 System.out.println("Page Size: "+pageSize);
                 System.out.println("Buffer Size: "+bufferSize);
             } else {
@@ -91,14 +93,17 @@ public class Main {
     }
     
     private static void shutdownDatabase() {
+        System.out.println("\nSafely shutting down the database...");
+        System.out.println("Purging page buffer...");
         buffer.writeBuffer();
         try {
+            System.out.println("Saving catalog...\n");
             catalog.writeCatalog(dbLocation + "catalog.bin");
         } catch (IOException e) {
             System.err.println("Error saving catalog: " + e.getMessage());
         }
-    
-        System.out.println("Exiting...");
+        
+        System.out.println("Exiting the database...\n");
     }    
 
     public static String getDBLocation() {

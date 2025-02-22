@@ -230,7 +230,12 @@ public class StorageManager {
             if (attr.isPrimaryKey() || attr.isUnique()) {
                 int comparison = compare(attr, record, existingRecord, i);
                 if (comparison == 0) {
-                    System.err.println("Error: Duplicate " + (attr.isPrimaryKey() ? "primary key" : "unique attribute"));
+                    if(attr.isPrimaryKey()){
+                        System.err.println("row (" + record.getData().get(i) + "): Duplicate primarykey for row (" + record.getData().get(i) + ")");
+                    }
+                    else{
+                        System.err.println("row (" + record.getData().get(i) + "): Duplicate unique value for row (" + record.getData().get(i) + ")");
+                    }
                     return true; // Constraint violation
                 }
             }
