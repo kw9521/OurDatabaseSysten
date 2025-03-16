@@ -100,6 +100,11 @@ public class PageBuffer {
         addPage(targetPage.getPageId(), targetPage);
         pages.remove(new PageKey(targetPage.getTableId(), oldPageNumber));
     }
+
+    public void purgeTablePages(int tableID) {
+        pages.entrySet().removeIf(entry -> entry.getKey().tableID() == tableID);
+    }
+    
 }
 
 record PageKey(int tableID, int pageID) {}

@@ -5,6 +5,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.Dictionary;
 import java.util.Hashtable;
 
@@ -62,13 +63,21 @@ public class Catalog {
      * @param droppedTab
      */
     public void dropTable(String tableName) {
-        if (tables.removeIf(table -> table.getName().equals(tableName))) {
+        Optional<Table> tableToRemove = tables.stream()
+            .filter(table -> table.getName().equals(tableName))
+            .findFirst();
+
+        if (tableToRemove.isPresent()) {
+            int tableID = tableToRemove.get().getTableID(); // Get table ID before removing it
+            tables.remove(tableToRemove.get());
             tableCount--;
+            Main.getBuffer().purgeTablePages(tableID); // Remove pages from the buffer
             System.out.println("Table dropped: " + tableName);
         } else {
             System.err.println("Table not found: " + tableName);
         }
     }
+
     
     public Table getTableByName(String tableName) {
         return this.tables.stream()
