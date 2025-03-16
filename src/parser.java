@@ -1,6 +1,7 @@
 import java.io.IOException;
 import java.util.*;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 public class parser {
     
@@ -80,6 +81,79 @@ public class parser {
         System.out.println("\nSUCCESS\n");
     }    
     
+    // Broken?
+    private static void alterTable(String inputLine, Catalog catalog, StorageManager storageManager) {
+        String[] tokens = inputLine.split("\\s+", 5);
+
+        if (tokens.length < 5 || !tokens[0].equalsIgnoreCase("alter") || !tokens[1].equalsIgnoreCase("table")) {
+            System.out.println("Syntax error in ALTER TABLE command.");
+            return;
+        }
+
+        String tableName = tokens[2];
+        Table table = catalog.getTableByName(tableName);
+
+        if (table == null) {
+            System.out.println("Table " + tableName + " not found.");
+            return;
+        }
+
+        String operation = tokens[3].toLowerCase();
+        String definition = tokens[4].replace(";", "");
+
+        if (operation.equals("add")) {
+            Attribute newAttr = Attribute.parse(definition);
+            table.addAttribute(newAttr);
+            Attribute[] attributes = table.getAttributes();
+            int newAttributeIndex = attributes.length - 1;
+
+            List<Page> pages = storageManager.getPages(table.getTableID());
+            for (Page page : pages) {
+                for (Record record : page.getRecords()) {
+                    if (definition.contains("default")) {
+                        String[] definitionParts = definition.split("\\s+");
+                        String defaultValue = definitionParts[definitionParts.length - 1];
+                        attributes[newAttributeIndex].setDefaultValue(defaultValue);
+                    }
+                    int sizeAdded = record.addValue(attributes[newAttributeIndex].getDefaultValue(), newAttributeIndex, attributes[newAttributeIndex]);
+                    page.setSize(page.getSize() + sizeAdded);
+                }
+                if (page.getSize() > Main.getPageSize()) {
+                    storageManager.splitPage(page);
+                }
+            }
+            System.out.println("Attribute " + newAttr.getName() + " added to table " + tableName + ".");
+
+        } else if (operation.equals("drop")) {
+            Attribute[] attributes = table.getAttributes();
+            List<Page> pages = storageManager.getPages(table.getTableID());
+
+            OptionalInt attributeIndexOpt = IntStream.range(0, attributes.length)
+                    .filter(i -> attributes[i].getName().equals(definition))
+                    .findFirst();
+
+            if (attributeIndexOpt.isEmpty()) {
+                System.out.println("Attribute " + definition + " not found in table " + tableName + ".");
+                return;
+            }
+
+            int attributeIndex = attributeIndexOpt.getAsInt();
+
+            for (Page page : pages) {
+                for (Record record : page.getRecords()) {
+                    int sizeLost = record.removeValue(attributeIndex, attributes[attributeIndex]);
+                    page.setSize(page.getSize() - sizeLost);
+                }
+            }
+
+            table.dropAttribute(definition);
+            System.out.println("Attribute " + definition + " dropped from table " + tableName + ".");
+
+        } else {
+            System.out.println("Unsupported ALTER TABLE operation: " + operation);
+        }
+    }
+
     private static void dropTable(String statement, Catalog catalog) {
         String[] tokens = statement.split("\\s+");
         if (tokens.length != 3 || !tokens[0].equalsIgnoreCase("drop") || !tokens[1].equalsIgnoreCase("table")) {
@@ -497,7 +571,7 @@ public class parser {
                 break;
 
             case "alter":
-                //alterTable(statement, catalog, storageManager);
+                alterTable(statement, catalog, storageManager);
                 break;
 
             case "insert":
