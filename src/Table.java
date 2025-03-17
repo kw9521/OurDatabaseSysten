@@ -1,5 +1,6 @@
 // Table = collection of pages
 import java.util.Arrays;
+import java.util.List;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
@@ -143,6 +144,26 @@ public class Table {
         for (int location : this.pageLocations) {
             dos.writeInt(location);
         }
+
+        for (int pageLocation : this.pageLocations) {
+        Page page = getPageByNumber(pageLocation);
+        if (page != null) {
+            for (Record record : page.getRecords()) {
+                List<Object> data = record.getData();
+                Attribute[] attributes = getAttributes();
+
+                // Pad data with nulls for missing attributes
+                while (data.size() < attributes.length) {
+                    data.add(null);
+                }
+
+                record.setData(data);
+            }
+        }
+    }
+
+
+
     }
 
     public static Table readFromStream(DataInputStream dis) throws IOException {

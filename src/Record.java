@@ -15,17 +15,41 @@ public class Record {
 
     public int addValue(Object value, int index, Attribute attr) {
         boolean isNull = (value == null);
-        setBitMapValue(index, isNull ? 1 : 0);
+        if (index >= this.data.size()) {
+            // Pad with null values if the record is shorter than the schema
+            for (int i = this.data.size(); i < index; i++) {
+                this.data.add(null);
+                this.nullBitMap.add((byte) 1);
+            }
+            this.data.add(value);
+            this.nullBitMap.add((byte) (isNull ? 1 : 0));
+        } else {
+            this.data.set(index, value);
+            this.nullBitMap.set(index, (byte) (isNull ? 1 : 0));
+        }
     
-        int sizeAdded = Byte.BYTES; // 1 byte for null bitmap
+        int sizeAdded = Byte.BYTES; // null bitmap size
         if (!isNull) {
             sizeAdded += getAttributeSize(value, attr);
         }
-    
-        this.data.add(value);
         this.size += sizeAdded;
         return sizeAdded;
     }
+
+    public void setData(List<Object> data) {
+        this.data = new ArrayList<>(data);
+    }
+
+    public void removeAttribute(int index) {
+        if (index < 0 || index >= this.data.size()) {
+            throw new IndexOutOfBoundsException("Invalid index: " + index);
+        }
+    
+        // Remove the value and shift remaining values left
+        this.data.remove(index);
+        this.nullBitMap.remove(index);
+    }
+    
     
     public int removeValue(int index, Attribute attr) {
         if (index < 0 || index >= this.data.size()) {

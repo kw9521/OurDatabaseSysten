@@ -104,27 +104,37 @@ public class parser {
         if (operation.equals("add")) {
             Attribute newAttr = Attribute.parse(definition);
             table.addAttribute(newAttr);
+        
             Attribute[] attributes = table.getAttributes();
             int newAttributeIndex = attributes.length - 1;
-
+        
             List<Page> pages = storageManager.getPages(table.getTableID());
             for (Page page : pages) {
                 for (Record record : page.getRecords()) {
+                    Object defaultValue = newAttr.getDefaultValue();
+                    
                     if (definition.contains("default")) {
                         String[] definitionParts = definition.split("\\s+");
-                        String defaultValue = definitionParts[definitionParts.length - 1];
+                        String defVal = definitionParts[definitionParts.length - 1];
                         attributes[newAttributeIndex].setDefaultValue(defaultValue);
+
+                        record.addValue(defVal, newAttributeIndex, newAttr);
+                    } else {
+                        // Add null value and adjust size
+                        record.addValue(null, newAttributeIndex, newAttr);
                     }
-                    int sizeAdded = record.addValue(attributes[newAttributeIndex].getDefaultValue(), newAttributeIndex, attributes[newAttributeIndex]);
-                    page.setSize(page.getSize() + sizeAdded);
                 }
-                if (page.getSize() > Main.getPageSize()) {
+                // Update the page size to reflect new attribute addition
+                page.setSize(page.getSize());
+                if (page.isOverfull()) {
                     storageManager.splitPage(page);
                 }
             }
+        
             System.out.println("Attribute " + newAttr.getName() + " added to table " + tableName + ".");
-
-        } else if (operation.equals("drop")) {
+        }
+        
+         else if (operation.equals("drop")) {
             Attribute[] attributes = table.getAttributes();
             List<Page> pages = storageManager.getPages(table.getTableID());
 
@@ -143,6 +153,7 @@ public class parser {
                 for (Record record : page.getRecords()) {
                     int sizeLost = record.removeValue(attributeIndex, attributes[attributeIndex]);
                     page.setSize(page.getSize() - sizeLost);
+                    // record.removeAttribute(attributeIndex);
                 }
             }
 
