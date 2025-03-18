@@ -78,7 +78,7 @@ public class PageBuffer {
     }
 
     public void writeBuffer() {
-        //Call the storage manager to write all pages in the buffer to hardware
+        // Call the storage manager to write all pages in the buffer to hardware
 
         Catalog catalog = Main.getCatalog();
         byte[] tableUpdatedArray = new byte[catalog.getTableCount()]; // 0 means not updated, 1 means updated
@@ -88,7 +88,9 @@ public class PageBuffer {
              Page page = entry.getValue();
              int tableNum = page.getTableId();
             
-             if (tableUpdatedArray[tableNum] == 0) {
+            if (catalog.getTable(tableNum) == null) {
+                // do nothing lol 
+            } else {
                 Table table = catalog.getTable(tableNum);
                 try (RandomAccessFile fileOut = new RandomAccessFile(Main.getDBLocation() + 
                          "/tables/" + tableNum + ".bin", "rw")) { // Open the file
@@ -98,6 +100,17 @@ public class PageBuffer {
                     // e.printStackTrace();
                 }
             }
+    
+            // if (tableUpdatedArray[tableNum] == 0) {
+            //     Table table = catalog.getTable(tableNum);
+            //     try (RandomAccessFile fileOut = new RandomAccessFile(Main.getDBLocation() + 
+            //              "/tables/" + tableNum + ".bin", "rw")) { // Open the file
+            //         fileOut.write(table.getPageCount());
+            //         tableUpdatedArray[tableNum] = 1; // Mark the table as updated
+            //     } catch (IOException e) {
+            //         // e.printStackTrace();
+            //     }
+            // } 
             
             writePage(page);
         }
@@ -114,6 +127,8 @@ public class PageBuffer {
 
     public void purgeTablePages(int tableID) {
         pages.entrySet().removeIf(entry -> entry.getKey().tableID() == tableID);
+    
+        System.gc();
     }
     
 }
