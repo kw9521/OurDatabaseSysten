@@ -88,8 +88,14 @@ public class Table {
                                 .filter(attr -> !attr.getName().equals(attrName))
                                 .toArray(Attribute[]::new);
         this.attributesCount--;
-        System.out.println("Attribute " + attrName + " removed from table " + this.name);
+    
+        if (this.pageCount > 0) {
+            this.pageLocations = Arrays.copyOf(this.pageLocations, this.pageCount);
+        } else {
+            this.pageLocations = new int[0];
+        }
     }
+    
 
     public String getName(){
         return this.name;

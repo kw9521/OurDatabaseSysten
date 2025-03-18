@@ -45,6 +45,17 @@ public class PageBuffer {
 
         // Find the page index in file
         int[] pageLocations = table.getPageLocations();
+
+        if (pageLocations == null || pageLocations.length == 0) {
+            System.err.println("Error: Page locations not properly initialized for table " + table.getName());
+            return;
+        }
+
+        if (table.getPageCount() != pageLocations.length) {
+            System.err.println("Error: Mismatch between table's pageCount and pageLocations length.");
+            return;
+        }        
+        
         OptionalInt indexOpt = IntStream.range(0, table.getPageCount())
                                         .filter(i -> pageLocations[i] == page.getPageId())
                                         .findFirst();
