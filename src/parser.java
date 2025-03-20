@@ -378,8 +378,64 @@ public class parser {
     
         System.out.println("SUCCESS\n");
     }    
+    
+    private static void select(String normalizedStatement, Catalog catalog, StorageManager storageManager){
+        // select * from foo;
+        // select name, gpa from student;
+        // select name, dept_name from student, department where student.dept_id = department.dept_id;
+        // select * from foo orderby x;
+        // select t1.a, t2.b, t2.c, t3.d from t1, t2, t3 where t1.a = t2.b and t2.c = t3.d orderby t1.a;    length = 19
 
-    private static void select(String normalizedStatement, Catalog catalog, StorageManager storageManager) {
+        // get rid of all spaces and commas, put rest of the words in an array
+        String[] words = normalizedStatement.replace(",", "").trim().split("\\s+");
+        
+        // determine num of attrs and put all attr in a list
+        // allAtrr: ["t1.a", "t2.b", "t2.c", "t3.d"]
+        int numOfSelects = 0;
+        ArrayList<String> allAttr = new ArrayList<>();
+        for (int i = 0; i<words.length-1; i++) {
+            if (words[i] == "from") {
+                break;
+            } if (words[i] != "select") {
+                 numOfSelects++;
+                allAttr.add(words[i]);
+            }
+        }
+
+        // determine how many tables we are working with
+        // allTables: ["t1", "t2", "t3"]
+        int numOfFroms = 0;
+        ArrayList<String> allTables = new ArrayList<>();
+        for (int i = 0; i<words.length-1; i++) {
+            if (words[i] == "where") {
+                break;
+            } if (words[i] != "select" && words[i] != "from") {
+                numOfSelects++;
+                allTables.add(words[i]);
+            }
+        }
+
+        // allConditionals: ["t1.a", "="", "t2.b", "and", "t2.c", "="", "t3.d"]
+        int numOfWheres = 0;
+        ArrayList<String> allConditionals = new ArrayList<>();
+        for (int i = 0; i<words.length-1; i++) {
+            if (words[i] == "orderby") {
+                break;
+            } if (words[i] != "select" && words[i] != "from" && words[i] != "where") {
+                numOfSelects++;
+                allConditionals.add(words[i]);
+            }
+        }
+
+        // orderBy: ["t1.a"]
+        ArrayList<String> orderBy = new ArrayList<>();
+        orderBy.add(words[words.length-2]);     // last word before ";"
+        
+
+    }
+
+
+    private static void select1(String normalizedStatement, Catalog catalog, StorageManager storageManager) {
 
         // check if input is in format: select * from foo;
         String[] parts = normalizedStatement.split(" ");
