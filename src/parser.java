@@ -386,52 +386,54 @@ public class parser {
         // select name, gpa from student;
         // select name, dept_name from student, department where student.dept_id = department.dept_id;
         // select * from foo orderby x;
-        // select t1.a, t2.b, t2.c, t3.d from t1, t2, t3 where t1.a = t2.b and t2.c = t3.d orderby t1.a;    length = 19
+        // select t1.a, t2.b, t2.c, t3.d from t1, t2, t3 where t1.a = t2.b and t2.c = t3.d orderby t1.a;    length = 20
 
         // get rid of all spaces and commas, put rest of the words in an array
         String[] words = normalizedStatement.replace(",", "").trim().split("\\s+");
         
         // determine num of attrs and put all attr in a list
         // allAtrr: ["t1.a", "t2.b", "t2.c", "t3.d"]
-        int numOfSelects = 0;
+        int numOfSelects = 0; // 4
         ArrayList<String> allAttr = new ArrayList<>();
         for (int i = 0; i<words.length-1; i++) {
             if (words[i] == "from") {
                 break;
             } if (words[i] != "select") {
-                 numOfSelects++;
+                numOfSelects++;
                 allAttr.add(words[i]);
             }
         }
 
         // determine how many tables we are working with
         // allTables: ["t1", "t2", "t3"]
-        int numOfFroms = 0;
+        // starts at "from"
+        int numOfTables = 0; //3
         ArrayList<String> allTables = new ArrayList<>();
-        for (int i = 0; i<words.length-1; i++) {
+        for (int i = numOfSelects+1; i<words.length-1; i++) {
             if (words[i] == "where") {
                 break;
-            } if (words[i] != "select" && words[i] != "from") {
-                numOfSelects++;
+            } if (words[i] != "from") {
+                numOfTables++;
                 allTables.add(words[i]);
             }
         }
 
         // allConditionals: ["t1.a", "="", "t2.b", "and", "t2.c", "="", "t3.d"]
-        int numOfWheres = 0;
+        int numOfWheres = 0; // 7
         ArrayList<String> allConditionals = new ArrayList<>();
-        for (int i = 0; i<words.length-1; i++) {
+        // starts at "where"
+        for (int i = numOfSelects+numOfTables+2; i<words.length-1; i++) {
             if (words[i] == "orderby") {
                 break;
-            } if (words[i] != "select" && words[i] != "from" && words[i] != "where") {
-                numOfSelects++;
+            } if (words[i] != "where") {
+                numOfWheres++;
                 allConditionals.add(words[i]);
             }
         }
 
         // orderBy: ["t1.a"]
         ArrayList<String> orderBy = new ArrayList<>();
-        orderBy.add(words[words.length-2]);     // last word before ";"
+        orderBy.add(words[words.length-2]);     // last word before ";", index 17
         
 
     }
