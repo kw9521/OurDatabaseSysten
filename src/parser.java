@@ -131,7 +131,6 @@ public class parser {
                 }
             }
         
-            System.out.println("Attribute " + newAttr.getName() + " added to table " + tableName + ".");
         }
         
          else if (operation.equals("drop")) {
@@ -158,8 +157,6 @@ public class parser {
             }
 
             table.dropAttribute(definition);
-            System.out.println("Attribute " + definition + " dropped from table " + tableName + ".");
-
         } else {
             System.out.println("Unsupported ALTER TABLE operation: " + operation);
         }
@@ -203,7 +200,12 @@ public class parser {
         for (String valueSet : individualValueSets) {
             valueSet = valueSet.trim().replaceAll("^\\(|\\)$", ""); // Remove outer parentheses
             String currentRow = "row (" + valueSet + "):";
-            String[] values = valueSet.split(" ");
+            
+            // Split by spaces but keep quoted substrings together
+            String[] values = valueSet.split("\\s*(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)\\s+");
+            for (int i = 0; i < values.length; i++) {
+                values[i] = values[i].replaceAll("^\"|\"$", "").trim();
+            }
     
             if (values.length != table.getAttributesCount()) {
                 String expected = "";
