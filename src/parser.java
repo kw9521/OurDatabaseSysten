@@ -396,9 +396,9 @@ public class parser {
         int numOfSelects = 0; // 4
         ArrayList<String> allAttr = new ArrayList<>();
         for (int i = 0; i<words.length-1; i++) {
-            if (words[i] == "from") {
+            if (words[i].equals("from")) {
                 break;
-            } if (words[i] != "select") {
+            } if (!(words[i].equals("select"))) {
                 numOfSelects++;
                 allAttr.add(words[i]);
             }
@@ -409,10 +409,13 @@ public class parser {
         // starts at "from"
         int numOfTables = 0; //3
         ArrayList<String> allTables = new ArrayList<>();
-        for (int i = numOfSelects+1; i<words.length-1; i++) {
-            if (words[i] == "where") {
+        for (int i = 0; i<words.length-1; i++) {
+            if (words[i].equals("where")) {
+                System.out.println("WHERE CALL");
+                ArrayList<String> conditionals = new ArrayList<>(Arrays.asList("x > 0 and y < 3 or b = 5 and c = 2".split(" ")));
+                Node tree = buildWhereTree(conditionals);
                 break;
-            } if (words[i] != "from") {
+            } if (!(words[i].equals("from"))) {
                 numOfTables++;
                 allTables.add(words[i]);
             }
@@ -423,9 +426,9 @@ public class parser {
         ArrayList<String> allConditionals = new ArrayList<>();
         // starts at "where"
         for (int i = numOfSelects+numOfTables+2; i<words.length-1; i++) {
-            if (words[i] == "orderby") {
+            if (words[i].equals("orderby")) {
                 break;
-            } if (words[i] != "where") {
+            } if (!(words[i].equals("where"))) {
                 numOfWheres++;
                 allConditionals.add(words[i]);
             }
@@ -435,6 +438,121 @@ public class parser {
         ArrayList<String> orderBy = new ArrayList<>();
         orderBy.add(words[words.length-2]);     // last word before ";", index 17
         
+
+    }
+
+    private static Node buildWhereTree(ArrayList<String> conditionals){
+        ArrayList<String> operators = new ArrayList<>();
+        ArrayList<String> operands = new ArrayList<>();
+        ArrayList<String> andOrList = new ArrayList<>();
+        ArrayList<Node> nodes = new ArrayList<>();
+        for(String condition : conditionals){
+            switch(condition){
+                case "=":
+                if(operands.size() > 1){
+                    System.out.println("ERROR: Invalid Syntax in Where Class");
+                    return null;
+                }
+                operands.add("=");
+                break;
+
+                case ">":
+                if(operands.size() > 1){
+                    System.out.println("ERROR: Invalid Syntax in Where Class");
+                    return null;
+                }
+                operands.add(">");
+                break;
+
+                case "<":
+                if(operands.size() > 1){
+                    System.out.println("ERROR: Invalid Syntax in Where Class");
+                    return null;
+                }
+                operands.add("<");
+                break;
+
+                case ">=":
+                if(operands.size() > 1){
+                    System.out.println("ERROR: Invalid Syntax in Where Class");
+                    return null;
+                }
+                operands.add(">=");
+                break;
+
+                case "<=":
+                if(operands.size() > 1){
+                    System.out.println("ERROR: Invalid Syntax in Where Class");
+                    return null;
+                }
+                operands.add("<=");
+                break;
+
+                case "!=":
+                if(operands.size() > 1){
+                    System.out.println("ERROR: Invalid Syntax in Where Class");
+                    return null;
+                }
+                operands.add("!=");
+                break;
+
+                case "and":
+                andOrList.add("and");
+                break;
+
+                case "or":
+                andOrList.add("or");
+                break;
+
+                default:
+                operators.add(condition);
+            }
+
+            if(operators.size() == 2){
+                Node tempNode = new Node(operands.get(0));
+                Node left = new Node(operators.get(0));
+                Node right = new Node(operators.get(1));
+
+                tempNode.setLeftLeaf(left);
+                tempNode.setRightLeaf(right);
+
+                nodes.add(tempNode);
+
+                operands.remove(0);
+                operators.clear();
+            }
+        }
+
+        for(int i = 0; i < andOrList.size();){
+            if(andOrList.get(i).equals("and")){
+                Node left = nodes.get(i);
+                Node right = nodes.get(i + 1);
+                Node andNode = new Node("and");
+                andNode.setLeftLeaf(left);
+                andNode.setRightLeaf(right);
+
+                nodes.remove(i + 1);
+                nodes.set(i, andNode);
+                andOrList.remove(i);
+            }
+            else{
+                i++;
+            }
+        }
+
+        while(andOrList.size() > 0){
+            Node left = nodes.get(0);
+            Node right = nodes.get(1);
+            Node orNode = new Node("or");
+            orNode.setLeftLeaf(left);
+            orNode.setRightLeaf(right);
+
+            nodes.remove(1);
+            nodes.set(0, orNode);
+            andOrList.remove(0);
+        }
+
+        return nodes.get(0);
 
     }
 
