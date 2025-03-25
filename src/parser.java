@@ -124,7 +124,7 @@ public class parser {
                         record.addValue(null, newAttributeIndex, newAttr);
                     }
                 }
-                // Recalculate Page Size
+                // Recalculate Page Size test
                 page.reCalcPageSize(); 
                 // Update the page size to reflect new attribute addition
                 page.setSize(page.getSize());
