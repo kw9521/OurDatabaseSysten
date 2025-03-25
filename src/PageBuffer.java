@@ -81,13 +81,12 @@ public class PageBuffer {
         // Call the storage manager to write all pages in the buffer to hardware
 
         Catalog catalog = Main.getCatalog();
-        byte[] tableUpdatedArray = new byte[catalog.getTableCount()]; // 0 means not updated, 1 means updated
+        byte[] tableUpdatedArray = new byte[catalog.getLargestTableID() + 1]; // 0 means not updated, 1 means updated
         Arrays.fill(tableUpdatedArray, (byte) 0); // Initialize the array to 0
 
         for (Map.Entry<PageKey, Page> entry : pages.entrySet()) {
              Page page = entry.getValue();
              int tableNum = page.getTableId();
-            
             if (catalog.getTable(tableNum) == null) {
                 // do nothing lol 
             } else {

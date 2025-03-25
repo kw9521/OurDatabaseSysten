@@ -47,7 +47,18 @@ public class Catalog {
     }
 
     public int getNextTableID(){
-        return this.tables.size();
+        return getLargestTableID() + 1;
+    }
+
+    public int getLargestTableID(){
+        int largestID = -1;
+        for(Table table : tables){
+            if(table.getTableID() > largestID){
+                largestID = table.getTableID();
+            }
+        }
+
+        return largestID;
     }
 
     public void addTable(Table table){
