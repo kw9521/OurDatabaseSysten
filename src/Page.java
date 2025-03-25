@@ -102,7 +102,7 @@ public class Page {
     }
 
     public byte[] toBinary(Table table) {
-        ByteBuffer buffer = ByteBuffer.allocate(Main.getPageSize());
+        ByteBuffer buffer = ByteBuffer.allocate(Main.getPageSize() + 8);
         buffer.putInt(getRecordCount());
 
         for (Record record : records) {
