@@ -124,6 +124,8 @@ public class parser {
                         record.addValue(null, newAttributeIndex, newAttr);
                     }
                 }
+                // Recalculate Page Size
+                page.reCalcPageSize(); 
                 // Update the page size to reflect new attribute addition
                 page.setSize(page.getSize());
                 if (page.isOverfull()) {
@@ -412,7 +414,7 @@ public class parser {
         for (int i = 0; i<words.length-1; i++) {
             if (words[i].equals("where")) {
                 System.out.println("WHERE CALL");
-                ArrayList<String> conditionals = new ArrayList<>(Arrays.asList("x > 0 and y < 3 or b = 5 and c = 2".split(" ")));
+                ArrayList<String> conditionals = new ArrayList<>(Arrays.asList("foo > 123 or baz < \"foo\" and bar = 2.1".split(" ")));
                 Node tree = buildWhereTree(conditionals);
                 break;
             } if (!(words[i].equals("from"))) {

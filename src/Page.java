@@ -101,6 +101,15 @@ public class Page {
         return getSize() > Main.getPageSize();
     }
 
+    public void reCalcPageSize(){
+        int size = 0;
+        for(Record record: records){
+            size = size + record.getSize();
+        }
+
+        this.size = size;
+    }
+
     public byte[] toBinary(Table table) {
         ByteBuffer buffer = ByteBuffer.allocate(Main.getPageSize() + 8);
         buffer.putInt(getRecordCount());
