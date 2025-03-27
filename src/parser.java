@@ -618,11 +618,11 @@ public class parser {
     }
 
     //Evaluates the where tree taking in a 2-D array of the cartesianed tables requested
-    public static ArrayList<ArrayList<Record>> evaluateWhereTree(ArrayList<ArrayList<Record>> cartesianedRecords, Node tree){
-        ArrayList<ArrayList<Record>> validRecords = new ArrayList<ArrayList<Record>>();
+    public static List<List<Object>> evaluateWhereTree(List<List<Object>> cartesianedRecords, List<String> columnNames, Node tree){
+        List<List<Object>> validRecords = new ArrayList<>();
 
-        for(ArrayList<Record> combinedRecords : cartesianedRecords){
-            if(tree.evaluate(combinedRecords)){
+        for(List<Object> combinedRecords : cartesianedRecords){
+            if(tree.evaluate(combinedRecords, columnNames)){
                 validRecords.add(combinedRecords);
             }
         }
