@@ -30,254 +30,36 @@ public class Node {
     }
 
     public boolean evaluate(List<Object> record, List<String> columnNames) throws Exception{
-        boolean isMultiTables = isMultipleTables(columnNames);
         boolean rightEval = false;
         boolean leftEval = false;
-        String rightVal = null;
-        String leftVal = null;
         switch(value){
             case "=":
-            leftVal = leftLeaf.getValue();
-            rightVal = rightLeaf.getValue();
-
-            if(isNumber(leftVal)){
-                //If Both leafs are numbers
-                if(isNumber(rightVal)){
-                    double leftNum = Double.parseDouble(leftVal);
-                    double rightNum = Double.parseDouble(rightVal);
-                    if(leftNum == rightNum){
-                        return true;
-                    }
-                    else{
-                        return false;
-                    }
-                }
-                //If just left leaf is a number
-                else{
-                    double leftNum = Double.parseDouble(leftVal);
-                    
-                    //Find the column name and get the index so we can check the value
-                    int i = getIndex(columnNames, rightVal, isMultiTables);
-
-                    //If we didn't find the column throw and exception
-                    if(i >= record.size()){
-                        throw new Exception("Column Name not found!");
-                    }
-
-                    try{
-                        if(record.get(i) == null){
-                            return false;
-                        }
-                        if(leftNum == convertObjToDouble(record.get(i))){
-                            return true;
-                        }
-                    }
-                    catch(Exception e){
-                        throw new Exception("Column type not a number!");
-                    }
-                    return false;
-                }
-            }
-            //If just the right leaf is a number
-            else if(isNumber(rightVal)){
-                double rightNum = Double.parseDouble(rightVal);
-                //Find the column name and get the index so we can check the value
-                int i = getIndex(columnNames, leftVal, isMultiTables);
-
-                //If we didn't find the column throw and exception
-                if(i >= columnNames.size()){
-                    throw new Exception("Column Name not found!");
-                }
-                try{
-                    if(record.get(i) == null){
-                        return false;
-                    }
-                    if(rightNum == convertObjToDouble(record.get(i))){
-                        return true;
-                    }
-                }
-                catch(Exception e){
-                    throw new Exception("Column type not a number!");
-                }
-                return false;
-            }
-            //If neither are numbers
-            else{
-                if(leftVal.equals("true") || leftVal.equals("false")){
-                    boolean leftBool;
-                    if(leftVal.equals("true")){
-                        leftBool = true;
-                    }
-                    else{
-                        leftBool = false;
-                    }
-                    int i = getIndex(columnNames, rightVal, isMultiTables);
-
-                    //If we didn't find the column throw and exception
-                    if(i >= record.size()){
-                        throw new Exception("Column Name not found!");
-                    }
-
-                    try{
-                        if(record.get(i) == null){
-                            return false;
-                        }
-                        return (leftBool == (boolean)record.get(i));
-                    }
-                    catch(Exception e){
-                        throw new Exception("Column type not a boolean!");
-                    }
-                }
-                //If the left leafs value is null
-                else if(leftVal.equals("null")){
-                    int i = getIndex(columnNames, rightVal, isMultiTables);
-
-                    //If we didn't find the column throw and exception
-                    if(i >= record.size()){
-                        throw new Exception("Column Name not found!");
-                    }
-
-                    if(record.get(i) == null){
-                        return true;
-                    }
-                    return false;
-                }
-                //If the left leafs value is a string
-                else if(leftVal.split("\"").length == 2){
-                    String leftString = leftVal.split("\"")[1];
-
-                    int i = getIndex(columnNames, rightVal, isMultiTables);
-
-                    //If we didn't find the column throw and exception
-                    if(i >= record.size()){
-                        throw new Exception("Column Name not found!");
-                    }
-
-                    try{
-                        if(record.get(i) == null){
-                            return false;
-                        }
-                        return (leftString.equals((String)record.get(i)));
-                    }
-                    catch(Exception e){
-                        throw new Exception("Column type not a string!");
-                    }
-
-                }
-                //If the right leafs value is a boolean
-                else if(rightVal.equals("true") || rightVal.equals("false")){
-                    boolean rightBool;
-                    if(rightVal.equals("true")){
-                        rightBool = true;
-                    }
-                    else{
-                        rightBool = false;
-                    }
-                    int i = getIndex(columnNames, leftVal, isMultiTables);
-
-                    //If we didn't find the column throw and exception
-                    if(i >= record.size()){
-                        throw new Exception("Column Name not found!");
-                    }
-
-                    try{
-                        if(record.get(i) == null){
-                            return false;
-                        }
-                        return (rightBool == (boolean)record.get(i));
-                    }
-                    catch(Exception e){
-                        throw new Exception("Column type not a boolean!");
-                    }
-                }
-                //If the right leafs value is null
-                else if(rightVal.equals("null")){
-                    int i = getIndex(columnNames, leftVal, isMultiTables);
-
-                    //If we didn't find the column throw and exception
-                    if(i >= record.size()){
-                        throw new Exception("Column Name not found!");
-                    }
-
-                    if(record.get(i) == null){
-                        return true;
-                    }
-                    return false;
-                }
-                //If the right leafs value is a string
-                else if(rightVal.split("\"").length == 2){
-                    String rightString = rightVal.split("\"")[1];
-
-                    int i = getIndex(columnNames, leftVal, isMultiTables);
-
-                    //If we didn't find the column throw and exception
-                    if(i >= record.size()){
-                        throw new Exception("Column Name not found!");
-                    }
-
-                    try{
-                        if(record.get(i) == null){
-                            return false;
-                        }
-                        return (rightString.equals((String)record.get(i)));
-                    }
-                    catch(Exception e){
-                        throw new Exception("Column type not a String!");
-                    }
-                }
-                //If both are column names
-                else{
-                    //Check to make sure we have correct syntax for column names
-                    if(leftVal.split("\\.").length == 2 && rightVal.split("\\.").length == 2){
-                        String column1 = leftVal.split("\\.")[1];
-                        String column2 = rightVal.split("\\.")[1];
-                        if(column1.equals(column2)){
-                            throw new Exception("Can not compare on the same columns!");
-                        }
-
-                        int c1 = getIndex(columnNames, leftVal, isMultiTables);
-                        int c2 = getIndex(columnNames, rightVal, isMultiTables);
-
-                        //If we didn't find the column throw and exception
-                        if(c1 >= columnNames.size() || c2 >= columnNames.size()){
-                            throw new Exception("Column Name not found!");
-                        }
-
-                        try{
-                            return compareObjectForEquality(record.get(c1), record.get(c2));
-                        }
-                        catch(Exception e){
-                            throw new Exception("Column type not a string!");
-                        }
-                    }
-                    else{
-                        throw new Exception("Invalid syntax!");
-                    }
-                }
-            }
+            return comparison(record, columnNames, "=");
+            
             case ">":
-            break;
+            return comparison(record, columnNames, ">");
 
             case "<":
-            break;
+            return comparison(record, columnNames, "<");
 
             case ">=":
-            break;
+            return comparison(record, columnNames, ">=");
 
             case "<=":
-            break;
+            return comparison(record, columnNames, "<=");
 
             case "!=":
-            break;
+            return comparison(record, columnNames, "!=");
 
             case "and":
-            break;
+            rightEval = rightLeaf.evaluate(record, columnNames);
+            leftEval = leftLeaf.evaluate(record, columnNames);
+            return rightEval && leftEval;
 
             case "or":
-            break;
-
-            default:
-            
+            rightEval = rightLeaf.evaluate(record, columnNames);
+            leftEval = leftLeaf.evaluate(record, columnNames);
+            return rightEval || leftEval;
         }
 
         return false;
@@ -370,6 +152,474 @@ public class Node {
         }
         else{
             throw new Exception("Invalid: Columns are not of same type!");
+        }
+    }
+
+    //Compares objects based on greater than
+    private boolean compareObjectForGreater(Object r1, Object r2) throws Exception{
+        if(r1 instanceof Integer && r2 instanceof Integer){
+            return (Integer)r1 > (Integer)r2;
+        }
+        else if(r1 instanceof Double && r2 instanceof Double){
+            return (Double)r1 > (Double)r2;
+        }
+        else if(r1 instanceof Boolean && r2 instanceof Boolean){
+            if(Boolean.compare((Boolean)r1, (Boolean)r2) > 0){
+                return true;
+            }
+            else{
+                return false;
+            }
+        }
+        else if(r1 instanceof String && r2 instanceof String){
+            if(((String)r1).compareTo((String)r2) > 0){
+                return true;
+            }
+            else{
+                return false;
+            }
+        }
+        else{
+            throw new Exception("Invalid: Columns are not of same type!");
+        }
+    }
+
+    //Compares objects based on less than
+    private boolean compareObjectForLess(Object r1, Object r2) throws Exception{
+        if(r1 instanceof Integer && r2 instanceof Integer){
+            return (Integer)r1 < (Integer)r2;
+        }
+        else if(r1 instanceof Double && r2 instanceof Double){
+            return (Double)r1 < (Double)r2;
+        }
+        else if(r1 instanceof Boolean && r2 instanceof Boolean){
+            if(Boolean.compare((Boolean)r1, (Boolean)r2) < 0){
+                return true;
+            }
+            else{
+                return false;
+            }
+        }
+        else if(r1 instanceof String && r2 instanceof String){
+            if(((String)r1).compareTo((String)r2) < 0){
+                return true;
+            }
+            else{
+                return false;
+            }
+        }
+        else{
+            throw new Exception("Invalid: Columns are not of same type!");
+        }
+    }
+
+    //Compares objects based on greater than or equal to
+    private boolean compareObjectForGreaterEquality(Object r1, Object r2) throws Exception{
+        if(r1 instanceof Integer && r2 instanceof Integer){
+            return (Integer)r1 >= (Integer)r2;
+        }
+        else if(r1 instanceof Double && r2 instanceof Double){
+            return (Double)r1 >= (Double)r2;
+        }
+        else if(r1 instanceof Boolean && r2 instanceof Boolean){
+            if(Boolean.compare((Boolean)r1, (Boolean)r2) >= 0){
+                return true;
+            }
+            else{
+                return false;
+            }
+        }
+        else if(r1 instanceof String && r2 instanceof String){
+            if(((String)r1).compareTo((String)r2) >= 0){
+                return true;
+            }
+            else{
+                return false;
+            }
+        }
+        else{
+            throw new Exception("Invalid: Columns are not of same type!");
+        }
+    }
+
+    //Compares objects based on less than or equal to
+    private boolean compareObjectForLessEquality(Object r1, Object r2) throws Exception{
+        if(r1 instanceof Integer && r2 instanceof Integer){
+            return (Integer)r1 <= (Integer)r2;
+        }
+        else if(r1 instanceof Double && r2 instanceof Double){
+            return (Double)r1 <= (Double)r2;
+        }
+        else if(r1 instanceof Boolean && r2 instanceof Boolean){
+            if(Boolean.compare((Boolean)r1, (Boolean)r2) <= 0){
+                return true;
+            }
+            else{
+                return false;
+            }
+        }
+        else if(r1 instanceof String && r2 instanceof String){
+            if(((String)r1).compareTo((String)r2) <= 0){
+                return true;
+            }
+            else{
+                return false;
+            }
+        }
+        else{
+            throw new Exception("Invalid: Columns are not of same type!");
+        }
+    }
+
+    //Compares objects based on not equal to
+    private boolean compareObjectForNotEquality(Object r1, Object r2) throws Exception{
+        if(r1 instanceof Integer && r2 instanceof Integer){
+            return (Integer)r1 != (Integer)r2;
+        }
+        else if(r1 instanceof Double && r2 instanceof Double){
+            return (Double)r1 != (Double)r2;
+        }
+        else if(r1 instanceof Boolean && r2 instanceof Boolean){
+            if(Boolean.compare((Boolean)r1, (Boolean)r2) != 0){
+                return true;
+            }
+            else{
+                return false;
+            }
+        }
+        else if(r1 instanceof String && r2 instanceof String){
+            if(((String)r1).compareTo((String)r2) != 0){
+                return true;
+            }
+            else{
+                return false;
+            }
+        }
+        else{
+            throw new Exception("Invalid: Columns are not of same type!");
+        }
+    }
+
+    private boolean comparison(List<Object> record, List<String> columnNames, String operator) throws Exception{
+        boolean isMultiTables = isMultipleTables(columnNames);
+        String leftVal = leftLeaf.getValue();
+        String rightVal = rightLeaf.getValue();
+
+        if(isNumber(leftVal)){
+            //If Both leafs are numbers
+            if(isNumber(rightVal)){
+                double leftNum = Double.parseDouble(leftVal);
+                double rightNum = Double.parseDouble(rightVal);
+                if(leftNum == rightNum){
+                    return true;
+                }
+                else{
+                    return false;
+                }
+            }
+            //If just left leaf is a number
+            else{
+                double leftNum = Double.parseDouble(leftVal);
+                
+                //Find the column name and get the index so we can check the value
+                int i = getIndex(columnNames, rightVal, isMultiTables);
+
+                //If we didn't find the column throw and exception
+                if(i >= record.size()){
+                    throw new Exception("Column Name not found!");
+                }
+
+                try{
+                    if(record.get(i) == null){
+                        return false;
+                    }
+                    switch(operator){
+                    case "=":
+                    return leftNum == convertObjToDouble(record.get(i));
+                    case ">":
+                    return leftNum > convertObjToDouble(record.get(i));
+                    case "<":
+                    return leftNum < convertObjToDouble(record.get(i));
+                    case ">=":
+                    return leftNum >= convertObjToDouble(record.get(i));
+                    case "<=":
+                    return leftNum <= convertObjToDouble(record.get(i));
+                    case "!=":
+                    return leftNum != convertObjToDouble(record.get(i));
+                    default:
+                    return false;
+                    }
+                }
+                catch(Exception e){
+                    throw new Exception("Column type not a number!");
+                }
+            }
+        }
+        //If just the right leaf is a number
+        else if(isNumber(rightVal)){
+            double rightNum = Double.parseDouble(rightVal);
+            //Find the column name and get the index so we can check the value
+            int i = getIndex(columnNames, leftVal, isMultiTables);
+
+            //If we didn't find the column throw and exception
+            if(i >= columnNames.size()){
+                throw new Exception("Column Name not found!");
+            }
+            try{
+                if(record.get(i) == null){
+                    return false;
+                }
+                switch(operator){
+                    case "=":
+                    return rightNum == convertObjToDouble(record.get(i));
+                    case ">":
+                    return rightNum > convertObjToDouble(record.get(i));
+                    case "<":
+                    return rightNum < convertObjToDouble(record.get(i));
+                    case ">=":
+                    return rightNum >= convertObjToDouble(record.get(i));
+                    case "<=":
+                    return rightNum <= convertObjToDouble(record.get(i));
+                    case "!=":
+                    return rightNum != convertObjToDouble(record.get(i));
+                    default:
+                    return false;
+                }
+            }
+            catch(Exception e){
+                throw new Exception("Column type not a number!");
+            }
+        }
+        //If neither are numbers
+        else{
+            if(leftVal.equals("true") || leftVal.equals("false")){
+                boolean leftBool;
+                if(leftVal.equals("true")){
+                    leftBool = true;
+                }
+                else{
+                    leftBool = false;
+                }
+                int i = getIndex(columnNames, rightVal, isMultiTables);
+
+                //If we didn't find the column throw and exception
+                if(i >= record.size()){
+                    throw new Exception("Column Name not found!");
+                }
+
+                try{
+                    if(record.get(i) == null){
+                        return false;
+                    }
+                    Object temp = leftBool;
+                    switch(operator){
+                        case "=":
+                        return compareObjectForEquality(temp, record.get(i));
+                        case ">":
+                        return compareObjectForGreater(temp, record.get(i));
+                        case "<":
+                        return compareObjectForLess(temp, record.get(i));
+                        case ">=":
+                        return compareObjectForGreaterEquality(temp, record.get(i));
+                        case "<=":
+                        return compareObjectForLessEquality(temp, record.get(i));
+                        case "!=":
+                        return compareObjectForNotEquality(temp, record.get(i));
+                        default:
+                        return false;
+                    }
+                }
+                catch(Exception e){
+                    throw new Exception("Column type not a boolean!");
+                }
+            }
+            //If the left leafs value is null
+            else if(leftVal.equals("null")){
+                int i = getIndex(columnNames, rightVal, isMultiTables);
+
+                //If we didn't find the column throw and exception
+                if(i >= record.size()){
+                    throw new Exception("Column Name not found!");
+                }
+
+                if(record.get(i) == null){
+                    return true;
+                }
+                return false;
+            }
+            //If the left leafs value is a string
+            else if(leftVal.split("\"").length == 2){
+                String leftString = leftVal.split("\"")[1];
+
+                int i = getIndex(columnNames, rightVal, isMultiTables);
+
+                //If we didn't find the column throw and exception
+                if(i >= record.size()){
+                    throw new Exception("Column Name not found!");
+                }
+
+                try{
+                    if(record.get(i) == null){
+                        return false;
+                    }
+                    switch(operator){
+                        case "=":
+                        return compareObjectForEquality(leftString, record.get(i));
+                        case ">":
+                        return compareObjectForGreater(leftString, record.get(i));
+                        case "<":
+                        return compareObjectForLess(leftString, record.get(i));
+                        case ">=":
+                        return compareObjectForGreaterEquality(leftString, record.get(i));
+                        case "<=":
+                        return compareObjectForLessEquality(leftString, record.get(i));
+                        case "!=":
+                        return compareObjectForNotEquality(leftString, record.get(i));
+                        default:
+                        return false;
+                    }
+                }
+                catch(Exception e){
+                    throw new Exception("Column type not a string!");
+                }
+
+            }
+            //If the right leafs value is a boolean
+            else if(rightVal.equals("true") || rightVal.equals("false")){
+                boolean rightBool;
+                if(rightVal.equals("true")){
+                    rightBool = true;
+                }
+                else{
+                    rightBool = false;
+                }
+                int i = getIndex(columnNames, leftVal, isMultiTables);
+
+                //If we didn't find the column throw and exception
+                if(i >= record.size()){
+                    throw new Exception("Column Name not found!");
+                }
+
+                try{
+                    if(record.get(i) == null){
+                        return false;
+                    }
+                    Object temp = rightBool;
+                    switch(operator){
+                        case "=":
+                        return compareObjectForEquality(temp, record.get(i));
+                        case ">":
+                        return compareObjectForGreater(temp, record.get(i));
+                        case "<":
+                        return compareObjectForLess(temp, record.get(i));
+                        case ">=":
+                        return compareObjectForGreaterEquality(temp, record.get(i));
+                        case "<=":
+                        return compareObjectForLessEquality(temp, record.get(i));
+                        case "!=":
+                        return compareObjectForNotEquality(temp, record.get(i));
+                        default:
+                        return false;
+                    }
+                }
+                catch(Exception e){
+                    throw new Exception("Column type not a boolean!");
+                }
+            }
+            //If the right leafs value is null
+            else if(rightVal.equals("null")){
+                int i = getIndex(columnNames, leftVal, isMultiTables);
+
+                //If we didn't find the column throw and exception
+                if(i >= record.size()){
+                    throw new Exception("Column Name not found!");
+                }
+
+                if(record.get(i) == null){
+                    return true;
+                }
+                return false;
+            }
+            //If the right leafs value is a string
+            else if(rightVal.split("\"").length == 2){
+                String rightString = rightVal.split("\"")[1];
+
+                int i = getIndex(columnNames, leftVal, isMultiTables);
+
+                //If we didn't find the column throw and exception
+                if(i >= record.size()){
+                    throw new Exception("Column Name not found!");
+                }
+
+                try{
+                    if(record.get(i) == null){
+                        return false;
+                    }
+                    switch(operator){
+                        case "=":
+                        return compareObjectForEquality(rightString, record.get(i));
+                        case ">":
+                        return compareObjectForGreater(rightString, record.get(i));
+                        case "<":
+                        return compareObjectForLess(rightString, record.get(i));
+                        case ">=":
+                        return compareObjectForGreaterEquality(rightString, record.get(i));
+                        case "<=":
+                        return compareObjectForLessEquality(rightString, record.get(i));
+                        case "!=":
+                        return compareObjectForNotEquality(rightString, record.get(i));
+                        default:
+                        return false;
+                    }
+                }
+                catch(Exception e){
+                    throw new Exception("Column type not a String!");
+                }
+            }
+            //If both are column names
+            else{
+                //Check to make sure we have correct syntax for column names
+                if(leftVal.split("\\.").length == 2 && rightVal.split("\\.").length == 2){
+                    String column1 = leftVal.split("\\.")[1];
+                    String column2 = rightVal.split("\\.")[1];
+                    if(column1.equals(column2)){
+                        throw new Exception("Can not compare on the same columns!");
+                    }
+
+                    int c1 = getIndex(columnNames, leftVal, isMultiTables);
+                    int c2 = getIndex(columnNames, rightVal, isMultiTables);
+
+                    //If we didn't find the column throw and exception
+                    if(c1 >= columnNames.size() || c2 >= columnNames.size()){
+                        throw new Exception("Column Name not found!");
+                    }
+
+                    try{
+                        switch(operator){
+                            case "=":
+                            return compareObjectForEquality(record.get(c1), record.get(c2));
+                            case ">":
+                            return compareObjectForGreater(record.get(c1), record.get(c2));
+                            case "<":
+                            return compareObjectForLess(record.get(c1), record.get(c2));
+                            case ">=":
+                            return compareObjectForGreaterEquality(record.get(c1), record.get(c2));
+                            case "<=":
+                            return compareObjectForLessEquality(record.get(c1), record.get(c2));
+                            case "!=":
+                            return compareObjectForNotEquality(record.get(c1), record.get(c2));
+                            default:
+                            return false;
+                        }
+                    }
+                    catch(Exception e){
+                        throw new Exception("Column type not a string!");
+                    }
+                }
+                else{
+                    throw new Exception("Invalid syntax!");
+                }
+            }
         }
     }
 }
