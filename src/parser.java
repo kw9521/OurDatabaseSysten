@@ -487,11 +487,41 @@ public class parser {
                 allConditionals.add(words[i]);
             }
         }
+        // where: will return a 2d array of values that are valid
+        // List<List<Object>> wtvDylanNamesIt= [ [record1], [record2], ... ]
 
         // orderBy: ["t1.a"]
-        ArrayList<String> orderBy = new ArrayList<>();
-        orderBy.add(words[words.length-2]);     // last word before ";", index 17
+        String orderByCondition = words[words.length-2];     // last word before ";", index 17
         
+        //        START OF GROUP BY       //
+
+        // get index of orderby condition
+        int attrIndex = getAttributeIndex(orderByCondition, allAttr);
+
+        // sort
+        if (attrIndex == -1) {
+            System.out.println("Error: Attribute not found.");
+            System.out.println("Invalid OrderBy Conditon");
+            return;
+        }
+
+        // List<List<Object>> finalOrderBySorted = orderByCondition
+        // print finalOrderBySorted
+
+    }
+
+
+    // order by will always be an element in the select's parsed str
+    // allAttr[] = t1.a, t2.b, t2.c, t3.d
+    // attrName = t1.a
+    private static int getAttributeIndex(String attrName, ArrayList<String> allAttr) {
+        for (int i = 0; i < allAttr.size(); i++) {
+            if (attrName.equals(allAttr.get(i))) {
+                return i;
+            }
+        }
+        return -1;
+
 
     }
 
