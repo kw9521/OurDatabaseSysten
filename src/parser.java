@@ -417,9 +417,9 @@ public class parser {
                 ArrayList<String> conditionals = new ArrayList<>(Arrays.asList("foo > 123 or baz < \"foo\" and bar = 2.1".split(" ")));
                 Node tree = buildWhereTree(conditionals);
                 break;
-            } if (!(words[i].equals("from"))) {
+            } if (words[i].equals("from")) {
                 numOfTables++;
-                allTables.add(words[i]);
+                //allTables.add(words[i]);
             }
         }
             
@@ -437,40 +437,24 @@ public class parser {
             }
             tableObjects.add(table);
         }
-
+        
         //Get all records from tables
         List<List<List<Object>>> allRecords = new ArrayList<>();
+        List<String> columnNames = new ArrayList<>();
         for (Table table : tableObjects) {
             List<List<Object>> records = storageManager.getRecords(table.getTableID());
+            String tableName = table.getName();
+            for(Attribute attr : table.getAttributes()){
+                columnNames.add(tableName + "." + attr.getName());
+            }
             allRecords.add(records);
         }
 
         // Get the cartesian products of all records
-        List<List<Object>> cartesianProduct = new ArrayList<>();
-        cartesianProduct = allRecords.get(0);
+        List<List<Object>> cartesianProduct = cartesianProduct(allRecords);
 
-        for (int i = 0; i < allRecords.size()-1; i++) {
-            List<List<Object>> currentTable = allRecords.get(i);
-            List<List<Object>> newCartesianProduct = new ArrayList<>();
-            for (List<Object> record1 : cartesianProduct) {
-                for (List<Object> record2 : currentTable) {
-                    List<Object> newRecord = new ArrayList<>(record1);
-                    newRecord.addAll(record2);
-                    newCartesianProduct.add(newRecord);
-                }
-            }
-            cartesianProduct = newCartesianProduct;
-        }
-
-        // Map out where each attribute is in the cartesian product
-        Map<String, Integer> attributeIndexMap = new HashMap<>();
-        int index = 0;
-        for (Table table : tableObjects) {
-            for (Attribute attribute : table.getAttributes()) {
-                attributeIndexMap.put(table.getName() + "." + attribute.getName(), index);
-                index++;
-            }
-        }
+        //From here you have columnNames and all records which can be passed to evaluate where in this class
+        
         //
         // From implementation ends here
         //
@@ -523,6 +507,29 @@ public class parser {
         return -1;
 
 
+    }
+
+    private static List<List<Object>> cartesianProduct(List<List<List<Object>>> tables) {
+        if (tables.isEmpty()) {
+            return new ArrayList<>();
+        }
+        
+        List<List<Object>> result = new ArrayList<>();
+        result.add(new ArrayList<>());
+        
+        for (List<List<Object>> table : tables) {
+            List<List<Object>> temp = new ArrayList<>();
+            for (List<Object> currentCombo : result) {
+                for (List<Object> record : table) {
+                    List<Object> newCombo = new ArrayList<>(currentCombo);
+                    newCombo.addAll(record); // Appends record elements in order
+                    temp.add(newCombo);
+                }
+            }
+            result = temp;
+        }
+        
+        return result;
     }
 
     private static Node buildWhereTree(ArrayList<String> conditionals){
@@ -638,6 +645,24 @@ public class parser {
 
         return nodes.get(0);
 
+    }
+
+    //Evaluates the where tree taking in a 2-D array of the cartesianed tables requested
+    public static List<List<Object>> evaluateWhereTree(List<List<Object>> cartesianedRecords, List<String> columnNames, Node tree){
+        List<List<Object>> validRecords = new ArrayList<>();
+
+        for(List<Object> combinedRecords : cartesianedRecords){
+            try{
+                if(tree.evaluate(combinedRecords, columnNames)){
+                    validRecords.add(combinedRecords);
+                }
+            }
+            catch(Exception e){
+
+            }
+        }
+        
+        return validRecords;
     }
 
 
