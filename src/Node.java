@@ -373,15 +373,15 @@ public class Node {
                     case "=":
                     return rightNum == convertObjToDouble(record.get(i));
                     case ">":
-                    return rightNum > convertObjToDouble(record.get(i));
+                    return convertObjToDouble(record.get(i)) > rightNum;
                     case "<":
-                    return rightNum < convertObjToDouble(record.get(i));
+                    return convertObjToDouble(record.get(i)) < rightNum;
                     case ">=":
-                    return rightNum >= convertObjToDouble(record.get(i));
+                    return convertObjToDouble(record.get(i)) >= rightNum;
                     case "<=":
-                    return rightNum <= convertObjToDouble(record.get(i));
+                    return convertObjToDouble(record.get(i)) <= rightNum;
                     case "!=":
-                    return rightNum != convertObjToDouble(record.get(i));
+                    return convertObjToDouble(record.get(i)) != rightNum;
                     default:
                     return false;
                 }
@@ -507,17 +507,17 @@ public class Node {
                     Object temp = rightBool;
                     switch(operator){
                         case "=":
-                        return compareObjectForEquality(temp, record.get(i));
+                        return compareObjectForEquality(record.get(i), temp);
                         case ">":
-                        return compareObjectForGreater(temp, record.get(i));
+                        return compareObjectForGreater(record.get(i), temp);
                         case "<":
-                        return compareObjectForLess(temp, record.get(i));
+                        return compareObjectForLess(record.get(i), temp);
                         case ">=":
-                        return compareObjectForGreaterEquality(temp, record.get(i));
+                        return compareObjectForGreaterEquality(record.get(i), temp);
                         case "<=":
-                        return compareObjectForLessEquality(temp, record.get(i));
+                        return compareObjectForLessEquality(record.get(i), temp);
                         case "!=":
-                        return compareObjectForNotEquality(temp, record.get(i));
+                        return compareObjectForNotEquality(record.get(i), temp);
                         default:
                         return false;
                     }
@@ -557,17 +557,17 @@ public class Node {
                     }
                     switch(operator){
                         case "=":
-                        return compareObjectForEquality(rightString, record.get(i));
+                        return compareObjectForEquality(record.get(i), rightString);
                         case ">":
-                        return compareObjectForGreater(rightString, record.get(i));
+                        return compareObjectForGreater(record.get(i), rightString);
                         case "<":
-                        return compareObjectForLess(rightString, record.get(i));
+                        return compareObjectForLess(record.get(i), rightString);
                         case ">=":
-                        return compareObjectForGreaterEquality(rightString, record.get(i));
+                        return compareObjectForGreaterEquality(record.get(i), rightString);
                         case "<=":
-                        return compareObjectForLessEquality(rightString, record.get(i));
+                        return compareObjectForLessEquality(record.get(i), rightString);
                         case "!=":
-                        return compareObjectForNotEquality(rightString, record.get(i));
+                        return compareObjectForNotEquality(record.get(i), rightString);
                         default:
                         return false;
                     }
