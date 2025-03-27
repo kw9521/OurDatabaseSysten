@@ -422,8 +422,6 @@ public class parser {
                 //allTables.add(words[i]);
             }
         }
-        allTables.add("baz"); // for testing purposes
-        allTables.add("foo");
             
             //
             // Implementation of From starts here
@@ -454,6 +452,8 @@ public class parser {
 
         // Get the cartesian products of all records
         List<List<Object>> cartesianProduct = cartesianProduct(allRecords);
+
+        //From here you have columnNames and all records which can be passed to evaluate where in this class
         
         //
         // From implementation ends here
@@ -622,8 +622,13 @@ public class parser {
         List<List<Object>> validRecords = new ArrayList<>();
 
         for(List<Object> combinedRecords : cartesianedRecords){
-            if(tree.evaluate(combinedRecords, columnNames)){
-                validRecords.add(combinedRecords);
+            try{
+                if(tree.evaluate(combinedRecords, columnNames)){
+                    validRecords.add(combinedRecords);
+                }
+            }
+            catch(Exception e){
+
             }
         }
         
