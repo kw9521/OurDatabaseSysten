@@ -422,6 +422,58 @@ public class parser {
                 allTables.add(words[i]);
             }
         }
+            
+            //
+            // Implementation of From starts here
+            //
+        //Find and validate all table names in catalog
+        List<Table> tableObjects = new ArrayList<>();
+        for (String tableName : allTables) {
+            Table table = catalog.getTableByName(tableName);
+            if (table == null) {
+                System.out.println("No such table " + tableName);
+                System.out.println("ERROR\n");
+                return;
+            }
+            tableObjects.add(table);
+        }
+
+        //Get all records from tables
+        List<List<List<Object>>> allRecords = new ArrayList<>();
+        for (Table table : tableObjects) {
+            List<List<Object>> records = storageManager.getRecords(table.getTableID());
+            allRecords.add(records);
+        }
+
+        // Get the cartesian products of all records
+        List<List<Object>> cartesianProduct = new ArrayList<>();
+        cartesianProduct = allRecords.get(0);
+
+        for (int i = 0; i < allRecords.size()-1; i++) {
+            List<List<Object>> currentTable = allRecords.get(i);
+            List<List<Object>> newCartesianProduct = new ArrayList<>();
+            for (List<Object> record1 : cartesianProduct) {
+                for (List<Object> record2 : currentTable) {
+                    List<Object> newRecord = new ArrayList<>(record1);
+                    newRecord.addAll(record2);
+                    newCartesianProduct.add(newRecord);
+                }
+            }
+            cartesianProduct = newCartesianProduct;
+        }
+
+        // Map out where each attribute is in the cartesian product
+        Map<String, Integer> attributeIndexMap = new HashMap<>();
+        int index = 0;
+        for (Table table : tableObjects) {
+            for (Attribute attribute : table.getAttributes()) {
+                attributeIndexMap.put(table.getName() + "." + attribute.getName(), index);
+                index++;
+            }
+        }
+        //
+        // From implementation ends here
+        //
 
         // allConditionals: ["t1.a", "="", "t2.b", "and", "t2.c", "="", "t3.d"]
         int numOfWheres = 0; // 7
