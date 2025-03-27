@@ -779,6 +779,47 @@ public class parser {
 
     }
 
+    private static void update(String normalizedStatement, Catalog catalog, StorageManager storageManager){
+        normalizedStatement = normalizedStatement.trim();
+        if (normalizedStatement.endsWith(";")) {
+            normalizedStatement = normalizedStatement.substring(0, normalizedStatement.length() - 1);
+        }
+
+        int setIndex = normalizedStatement.toLowerCase().indexOf(" set ");
+        int whereIndex = normalizedStatement.toLowerCase().indexOf(" where ");
+
+        if (setIndex == -1) {
+            System.err.println("Missing SET clause.");
+            return;
+        }
+        if (whereIndex == -1) {
+            System.err.println("Missing WHERE clause.");
+            return;
+        }
+
+        String tableName = normalizedStatement.substring(7, setIndex).trim(); 
+        String setClause = normalizedStatement.substring(setIndex + 5, whereIndex).trim(); 
+        String whereClause = normalizedStatement.substring(whereIndex + 7).trim();        
+
+        String[] assignment = setClause.split("=", 2);
+        String columnName = assignment[0].trim();
+        String valueStr = assignment[1].trim();
+        if (valueStr.startsWith("\"") && valueStr.endsWith("\"")) {
+            valueStr = valueStr.substring(1, valueStr.length() - 1); // Remove quotes
+        }
+
+        //Get current table 
+        Table tableToUpdate = catalog.getTableByName(tableName);
+        if (tableToUpdate == null) {
+            System.err.println("Table not found: " + tableName);
+            return;
+        }
+        
+        //Inserting Logic To Be Implemented
+        
+
+    }
+
 
     public static void parse(String statement, Catalog catalog, PageBuffer buffer, String dbDirectory, int pageSize, StorageManager storageManager) {
         String[] tokens = statement.trim().split("\\s+");
@@ -830,7 +871,7 @@ public class parser {
                 break;
 
             case "update":
-                //update(statement, catalog, storageManager);
+                update(statement, catalog, storageManager);
                 break;
 
             case "display":
