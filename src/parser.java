@@ -521,55 +521,55 @@ public class parser {
         // Process WHERE clause if present
         List<List<Object>> validRecords = cartesianProduct;
         if (whereIndex != -1) {
-            ArrayList<String> allConditionals = new ArrayList<>();
-            int whereEnd = (orderByIndex != -1) ? orderByIndex : words.length;
-            for (int i = whereIndex + 1; i < whereEnd; i++) {
-                allConditionals.add(words[i]);
+        ArrayList<String> allConditionals = new ArrayList<>();
+        int whereEnd = (orderByIndex != -1) ? orderByIndex : words.length;
+        for (int i = whereIndex + 1; i < whereEnd; i++) {
+            allConditionals.add(words[i]);
+        }
+
+        // Resolve unqualified attributes and check for ambiguity
+        for (int i = 0; i < allConditionals.size(); i++) {
+            String condition = allConditionals.get(i);
+
+            // Skip operators and logical keywords
+            if (condition.equals("=") || condition.equals(">") || condition.equals("<") ||
+                condition.equals(">=") || condition.equals("<=") || condition.equals("!=") ||
+                condition.equalsIgnoreCase("and") || condition.equalsIgnoreCase("or")) {
+                continue;
             }
-        
-            // Resolve unqualified attributes and check for ambiguity
-            for (int i = 0; i < allConditionals.size(); i++) {
-                String condition = allConditionals.get(i);
-        
-                // Skip operators and logical keywords
-                if (condition.equals("=") || condition.equals(">") || condition.equals("<") ||
-                    condition.equals(">=") || condition.equals("<=") || condition.equals("!=") ||
-                    condition.equalsIgnoreCase("and") || condition.equalsIgnoreCase("or")) {
-                    continue;
-                }
-        
-                // Check for ambiguous attributes
-                int matchedIndex = -1;
-                int matchCount = 0;
-                for (int j = 0; j < columnNames.size(); j++) {
-                    String columnName = columnNames.get(j);
-                    String[] parts = columnName.split("\\.");
-                    if (parts.length == 2 && parts[1].equals(condition)) {
-                        matchCount++;
-                        matchedIndex = j;
-                    }
-                }
-        
-                // Ambiguity detected
-                if (matchCount > 1) {
-                    System.out.println("Ambiguous attribute '" + condition + "' found in multiple tables.");
-                    System.out.println("ERROR\n");
-                    return;
-                }
-        
-                // Replace unqualified attribute with fully qualified name
-                if (matchCount == 1) {
-                    allConditionals.set(i, columnNames.get(matchedIndex));
+
+            // Check for ambiguous attributes
+            int matchedIndex = -1;
+            int matchCount = 0;
+            for (int j = 0; j < columnNames.size(); j++) {
+                String columnName = columnNames.get(j);
+                String[] parts = columnName.split("\\.");
+                if (parts.length == 2 && parts[1].equals(condition)) {
+                    matchCount++;
+                    matchedIndex = j;
                 }
             }
-        
-            // Build where tree after resolving ambiguity
-            Node tree = buildWhereTree(allConditionals);
-            if (tree != null) {
-                validRecords = evaluateWhereTree(cartesianProduct, columnNames, tree);
+
+            // Ambiguity detected
+            if (matchCount > 1) {
+                System.out.println("Ambiguous attribute '" + condition + "' found in multiple tables.");
+                System.out.println("ERROR\n");
+                return;
+            }
+
+            // Replace unqualified attribute with fully qualified name
+            if (matchCount == 1) {
+                allConditionals.set(i, columnNames.get(matchedIndex));
             }
         }
-        
+
+        // Build where tree after resolving ambiguity
+        Node tree = buildWhereTree(allConditionals);
+        if (tree != null) {
+            validRecords = evaluateWhereTree(cartesianProduct, columnNames, tree);
+        }
+    }
+
 
         // Process ORDER BY clause if present
         if (orderByIndex != -1 && orderByIndex + 1 < words.length) {
@@ -837,7 +837,8 @@ public class parser {
                 }
             }
             catch(Exception e){
-
+                System.out.println(e.getMessage());
+                break;
             }
         }
         
@@ -851,6 +852,11 @@ public class parser {
     private static void printGiven2List(List<List<Object>> listToPrint, ArrayList<String> allAttr, ArrayList<Integer> attrIndices) {
         // used to store the max length of each attribute
         // Key = atrr name, Value = max length of the attribute's data
+        
+        if (listToPrint.size() == 0) {
+            return;
+        }
+        
         HashMap<String, Integer> maxAttributeLength = new HashMap<>();
 
         // initial max length will be max length of the attribute name

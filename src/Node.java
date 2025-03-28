@@ -151,7 +151,7 @@ public class Node {
             return ((String)r1).equals((String)r2);
         }
         else{
-            throw new Exception("Invalid: Columns are not of same type!");
+            throw new Exception("Mismatch datatypes in where clause");
         }
     }
 
@@ -296,7 +296,7 @@ public class Node {
             }
         }
         else{
-            throw new Exception("Invalid: Columns are not of same type!");
+            throw new Exception("Mismatch datatypes in where clause");
         }
     }
 
