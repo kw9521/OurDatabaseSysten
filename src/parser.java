@@ -474,26 +474,23 @@ public class parser {
         // where: will return a 2d array of values that are valid
         // List<List<Object>> wtvDylanNamesIt= [ [record1], [record2], ... ]
 
+        //        START OF GROUP BY       //
+
         // orderBy: ["t1.a"]
         String orderByCondition = words[words.length-2];     // last word before ";", index 17
         
-        //        START OF GROUP BY       //
-
-        // get index of orderby condition
+        // 1. get index of orderby condition
         int attrIndex = getAttributeIndex(orderByCondition, allAttr);
-
-        // sort
         if (attrIndex == -1) {
-            System.out.println("Error: Attribute not found.");
             System.out.println("Invalid OrderBy Conditon");
             return;
         }
 
-        // List<List<Object>> finalOrderBySorted = orderByCondition
-        // print finalOrderBySorted
+        // sort the records based on the order by condition
 
+        // 2. List<List<Object>> finalOrderBySorted = sortRecords(wtvDylanNamesIt, attrIndex);
+        // 3. print finalOrderBySorted
     }
-
 
     // order by will always be an element in the select's parsed str
     // allAttr[] = t1.a, t2.b, t2.c, t3.d
@@ -505,9 +502,61 @@ public class parser {
             }
         }
         return -1;
-
-
     }
+
+    public static List<List<Object>> sortRecords(List<List<Object>> wtvDylanNamesIt, int attrIndex) {
+        return mergeSort(wtvDylanNamesIt, attrIndex);
+    }
+
+    private static List<List<Object>> mergeSort(List<List<Object>> wtvDylanNamesIt, int attrIndex) {
+        if (wtvDylanNamesIt.size() <= 1) {
+            return wtvDylanNamesIt;
+        }
+        int mid = wtvDylanNamesIt.size() / 2;
+        List<List<Object>> left = mergeSort(wtvDylanNamesIt.subList(0, mid), attrIndex);
+        List<List<Object>> right = mergeSort(wtvDylanNamesIt.subList(mid, wtvDylanNamesIt.size()), attrIndex);
+        return merge(left, right, attrIndex);
+    }
+    
+    private static List<List<Object>> merge(List<List<Object>> left, List<List<Object>> right, int attrIndex) {
+        List<List<Object>> sortedList = new ArrayList<>();
+        int i = 0, j = 0;
+        while (i < left.size() && j < right.size()) {
+            Object leftVal = left.get(i).get(attrIndex);
+            Object rightVal = right.get(j).get(attrIndex);
+            if (compareValues(leftVal, rightVal) <= 0) {
+                sortedList.add(left.get(i));
+                i++;
+            } else {
+                sortedList.add(right.get(j));
+                j++;
+            }
+        }
+        sortedList.addAll(left.subList(i, left.size()));
+        sortedList.addAll(right.subList(j, right.size()));
+        return sortedList;
+    }
+
+    private static int compareValues(Object a, Object b) {
+        if (a == null && b == null) return 0;
+        if (a == null) return 1;
+        if (b == null) return -1;
+
+        if (a instanceof Integer) {
+            return Integer.compare((Integer) a, (Integer) b);
+        } else if (a instanceof Double) {
+            return Double.compare((Double) a, (Double) b);
+        } else if (a instanceof Boolean) {
+            return Boolean.compare((Boolean) a, (Boolean) b);
+        } else if (a instanceof String) {
+            return ((String) a).compareTo((String) b);
+        } else if (a instanceof Character) {
+            return Character.compare((Character) a, (Character) b);
+        } else {
+            throw new IllegalArgumentException("Unsupported type: " + a.getClass().getSimpleName());
+        }
+    }
+
 
     private static List<List<Object>> cartesianProduct(List<List<List<Object>>> tables) {
         if (tables.isEmpty()) {
@@ -665,6 +714,148 @@ public class parser {
         return validRecords;
     }
 
+    // listToPrint = [ ["John", "8", "CS"], ["Poppy", "10", "Math"], ... ]
+    private static void printGiven2List(List<List<Object>> listToPrint, ArrayList<String> allAttr){
+        // used to store the max length of each attribute
+        // Key = atrr name
+        // Value = max length of the attribute's data
+        HashMap<String, Integer> maxAttributeLength = new HashMap<String, Integer>();
+        // Attribute[] attrOfSelectedTable = selectedTable.getAttributes();
+
+
+
+        // initial max length will be max length of the attribute name
+        for (String attr : allAttr) {
+            maxAttributeLength.put(attr, attr.length());
+        }
+
+        // go thru each page of the selected table and get all records associated with this page via getRecords() 
+            // go thru all the records and call getData() of Record.java and get length of the name of the record
+            
+        
+        // recordTuple = each individual tuple in the list of tuples
+        // [[tuple], [tuple], [],]
+        for (List<Object> recordTuple : listToPrint) {
+            
+            // go thru each value in above tuple
+             // tuple: [value, value, value, ...]
+            for (int j = 0; j < recordTuple.size(); j++) {
+                Object value = recordTuple.get(j);
+                if (value != null) {
+                    String valueString = value.toString();
+                    
+                    // go thru entire tuple, check if length of that attr's value is greater than the one currently stored in the hashmap
+                    if (valueString.length() > maxAttributeLength.get(allAttr.get(j))) {
+                        // update the max length of the attribute
+                        maxAttributeLength.put(allAttr.get(j), valueString.length());
+                        // replace? or add new one
+                    }
+                }
+            }
+        }
+
+        // everything above is just to determine the max size of each tuple
+        // everything below will be for PRINTING to output
+
+        // num of dashes = (number of attributes total + 1) + (each attribute's max length +1)
+        int totalLength = 0;
+        for (String attr : allAttr) {
+            totalLength += maxAttributeLength.get(attr) + 1;
+        }
+        totalLength += allAttr.size() + 1;
+
+        // first "-------" line
+        System.out.println();
+        System.out.println("-".repeat(totalLength));
+
+        // print the attribute names
+        // print "|" at in the beginning
+        // if attribute's max length is a even number then:
+            // numofSpacesFrontAndBack = ((max length of each attribute+1) - (length of the attribute name)) / 2
+            // print:
+            //  " "* numofSpacesFrontAndBack
+            //  attribute name
+            // " "* numofSpacesFrontAndBack
+        // else
+            // numofSpaces = ((max length of each attribute+1) - (length of the attribute name)) 
+            // numOfSpacesFront = numOfSpaces / 2 ROUNDED UP
+            // numOfSpacesBack = numOfSpaces / 2 ROUNDED DOWN
+            // print:
+            //  " "* numofSpacesFront
+            //  attribute name
+            // " "* numofSpacesBack
+        // print "|" at the end
+        
+        for (String attr : allAttr) {
+            int maxAttrLength = maxAttributeLength.get(attr) + 1; // 14.5 = length4 +1 =5
+
+            int spacesFront = 0;
+            int spacesBack = 0;
+
+            if (maxAttrLength % 2 == 0) {
+                spacesFront = ((maxAttrLength - attr.length()) / 2 ) + 1;
+                spacesBack = maxAttrLength - spacesFront - attr.length();
+            } else {
+                int spaces = maxAttrLength - attr.length(); 
+                spacesFront = spaces / 2;
+                spacesBack = spaces - spacesFront;
+            }
+        
+            System.out.print("|");
+            System.out.print(" ".repeat(Math.max(0, spacesFront))); // Ensure non-negative repeat value
+            System.out.print(attr);
+            System.out.print(" ".repeat(Math.max(0, spacesBack))); // Ensure non-negative repeat value
+        }
+        // print remaining "|"
+        System.err.println("|");
+        
+        // print 2nd "-------" line
+        System.out.println("-".repeat(totalLength));
+
+
+        // print each attribute's values
+        // print the actual data now
+        // print "|" at in the beginning
+        // for each attribute:
+            // numofSpaces = attribute's MAX length + 1
+            // numOfSpacesFront = numOfSpaces - CURRENT attribute's value length 
+            // print:
+            //  " "* numofSpacesFront
+            //  attribute's value
+            // "|"
+        // print "|" at the end
+        // [ [Tuples], [Tuples], [Tuples], ... ]
+        for (List<Object> recordTuple : listToPrint) {
+
+            // [value, value, value, ...]
+            for (int j = 0; j < recordTuple.size(); j++) {
+
+                // value of curr attr
+                Object value = recordTuple.get(j);
+
+                String currAttr = allAttr.get(j);
+
+                int maxAttrLength = maxAttributeLength.get(currAttr);
+                int spaces = maxAttrLength + 1;
+                int spacesFront = 0;
+
+                if (value != null) {
+                    String valueString = value.toString();
+                    spacesFront = spaces - valueString.length();
+                    System.out.print("|");
+                    System.out.print(" ".repeat(spacesFront));
+                    System.out.print(valueString);
+                } else {
+                    System.out.print("|");
+                    System.out.print(" ".repeat(spaces));
+                }
+            }
+            System.out.println("|");
+        }
+
+        // print ending "SUCCESS" message
+        System.out.println("\nSUCCESS\n");
+    }
 
     private static void select1(String normalizedStatement, Catalog catalog, StorageManager storageManager) {
 
