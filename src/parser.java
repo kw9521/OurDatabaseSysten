@@ -388,7 +388,10 @@ public class parser {
         // select name, dept_name from student, department where student.dept_id = department.dept_id;
         // select * from foo orderby x;
         // select t1.a, t2.b, t2.c, t3.d from t1, t2, t3 where t1.a = t2.b and t2.c = t3.d orderby t1.a;    length = 20
-
+        
+        if (normalizedStatement.endsWith(";")) {
+            normalizedStatement = normalizedStatement.substring(0, normalizedStatement.length() - 1);
+        }
         String[] words = normalizedStatement.replace(",", "").trim().split("\\s+");
 
         // Find the index positions of "from", "where", and "orderby"
@@ -403,14 +406,13 @@ public class parser {
             }
         }
 
-        // Error if "from" is missing: SELECT x; or SELECT x FROM; 
+        // Error if "from" is missing or incomplete: SELECT x; or SELECT x FROM;
         if (fromIndex == -1 || fromIndex == words.length - 1) {
             System.out.println("Syntax error: Missing or incomplete 'from' clause.");
             return;
         }
 
-        // Extract attributes between "select" and "from": SELECT x, y, z FROM ... 
-        // allAttr = [x, y, z]
+        // Extract attributes between "select" and "from": SELECT x, y, z FROM ...
         ArrayList<String> allAttr = new ArrayList<>();
         for (int i = 1; i < fromIndex; i++) {
             allAttr.add(words[i]);
@@ -433,6 +435,55 @@ public class parser {
                 return;
             }
             tableObjects.add(table);
+        }
+
+        // If select * was used, replace allAttr with all attributes from the tables
+        // allAttr will be in format: [foo.x, foo.y, ...]
+        if (allAttr.size() == 1 && allAttr.get(0).equals("*")) {
+            allAttr.clear(); // Remove "*"
+            for (Table table : tableObjects) {
+                for (Attribute attr : table.getAttributes()) {
+                    allAttr.add(table.getName() + "." + attr.getName());
+                }
+            }
+        } else {
+            // Validate that all selected attributes exist in the specified tables
+            ArrayList<String> qualifiedAttr = new ArrayList<>();
+            for (String attr : allAttr) {
+                boolean found = false;
+                for (Table table : tableObjects) {
+                    for (Attribute attribute : table.getAttributes()) {
+                        // Check for fully qualified attributes (tableName.attr)
+                        if (attr.equals(table.getName() + "." + attribute.getName())) {
+                            qualifiedAttr.add(attr); // Attribute is already qualified
+                            found = true;
+                            break;
+                        }
+                        // Check for unqualified attributes (attr), and qualify it
+                        if (attr.equals(attribute.getName())) {
+                            // If found in multiple tables, ambiguity error
+                            if (found) {
+                                System.out.println("Ambiguous attribute " + attr + " found in multiple tables.");
+                                System.out.println("ERROR\n");
+                                return;
+                            }
+                            qualifiedAttr.add(table.getName() + "." + attribute.getName());
+                            found = true;
+                        }
+                    }
+                }
+                // If attribute not found in any table, print error and return
+                if (!found) {
+                    System.out.println("There is no such attribute " + attr + ".");
+                    System.out.println("ERROR\n");
+                    return;
+                }
+            }
+
+            // Replace allAttr with the fully qualified attribute names
+            allAttr.clear();
+            allAttr.addAll(qualifiedAttr);
+
         }
 
         // Get all records from tables and generate the Cartesian product
@@ -831,10 +882,15 @@ public class parser {
             
             // go thru each value in above tuple
              // tuple: [value, value, value, ...]
+            // System.out.println("record type size is " + recordTuple.size());
             for (int j = 0; j < recordTuple.size(); j++) {
                 Object value = recordTuple.get(j);
                 if (value != null) {
                     String valueString = value.toString();
+                    
+                    // System.out.println("value string: " +valueString + "   value string length: " + valueString.length());
+                    // System.out.println(allAttr.toString() + " at pos" +j+" is" + allAttr.get(j));
+                    // System.out.println("attr's max length rn is " + maxAttributeLength.get(allAttr.get(j)));
                     
                     // go thru entire tuple, check if length of that attr's value is greater than the one currently stored in the hashmap
                     if (valueString.length() > maxAttributeLength.get(allAttr.get(j))) {
