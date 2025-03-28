@@ -1152,9 +1152,177 @@ public class parser {
             return;
         }
         
-        //Inserting Logic To Be Implemented
-        
+        // Construct a list of column names from the table's attributes.
+        List<String> columnNames = new ArrayList<>();
+        for (Attribute attr : tableToUpdate.getAttributes()) {
+            columnNames.add(tableName + "." + attr.getName());
+        }
 
+        //Find the attribute to update
+        Attribute[] attributes = tableToUpdate.getAttributes();
+        int columnIndex = -1;
+        for (int i = 0; i < attributes.length; i++) {
+            if (attributes[i].getName().equalsIgnoreCase(columnName)) {
+                columnIndex = i;
+                break;
+            }
+        }
+        if (columnIndex == -1) {
+            System.err.println("Column not found: " + columnName);
+            return;
+        }  
+        Attribute targetAttr = attributes[columnIndex];
+        
+        //Parse the new value based on attribute type
+        Object newValue = parseValueBasedOnType(valueStr, targetAttr);
+        if (newValue == null) {
+            System.err.println("Invalid value for attribute type: " + targetAttr.getType());
+            return;
+        }
+
+        //Get all pages.
+        List<Page> pages = storageManager.getPages(tableToUpdate.getTableID());
+
+        //Parse where condition into tree
+        ArrayList<String> conditionTokens = new ArrayList<>(Arrays.asList(whereClause.split("\\s+")));
+        Node conditionTree = buildWhereTree(conditionTokens);
+        if (conditionTree == null) {
+            System.err.println("Error parsing WHERE clause.");
+            return;
+        }
+
+        List<List<Object>> allRecordData = new ArrayList<>();
+        for (Page page : pages) {
+            for (Record record : page.getRecords()) {
+                allRecordData.add(record.getData());
+            }
+        }
+
+        List<List<Object>> whereTable = evaluateWhereTree(allRecordData, columnNames, conditionTree);
+
+        //DEBUGGING PURPOSE: TO SEE WHAT INSIDE THE TABLE BEFORE THE UPDATE
+        System.out.println("Debugging Purpose: Print Table before update");
+        for (Page page : pages) {
+            List<Record> records = page.getRecords();
+            for (Record record : records) {
+                System.out.println(record.getData());
+            }
+        }
+
+        //Apply Update
+        for (Page page : pages) {
+            List<Record> records = page.getRecords();
+            for (Record record : records) {
+
+                //If current record don't satisfy where condition, skip
+                if (!rowMatches(record.getData(), whereTable)) {
+                    continue;
+                }
+
+                //Verify that new value is unique if attribute is primary key
+                if(targetAttr.isPrimaryKey()){
+                    if(newValue == null){
+                        System.err.println("Primary Key cannot be assign Null Value");
+                    }
+                    for (Page otherPage : pages) {
+                        for (Record otherRecord : otherPage.getRecords()) {
+                            if (otherRecord == record) {
+                                continue;
+                            }
+                            Object otherVal = otherRecord.getData().get(columnIndex);
+                            if(newValue.equals(otherVal)){
+                                System.err.println("Duplicate primarykey");
+                                System.out.println("ERROR\n");
+                                return;
+                            }
+                        }
+                    }
+                } 
+
+                //Verify that new value is unique if attribute is declared unique
+                if(targetAttr.isUnique()){
+                    for (Page otherPage : pages) {
+                        for (Record otherRecord : otherPage.getRecords()) {
+                            if (otherRecord == record) {
+                                continue;
+                            }
+                            Object otherVal = otherRecord.getData().get(columnIndex);
+                            if(newValue.equals(otherVal)){
+                                System.err.println("Value already exist in this unique attribute");
+                                System.out.println("ERROR\n");
+                                return;
+                            }
+                        }
+                    }
+                } 
+                
+                // Update the record's value for the target column.
+                Object oldVal = record.getData().get(columnIndex);
+                int sizeDiff = 0;
+                if (oldVal != null) {
+                    sizeDiff -= getAttributeSize(oldVal, targetAttr);
+                }
+                record.getData().set(columnIndex, newValue);
+                record.setBitMapValue(columnIndex, newValue == null ? 1 : 0);
+                if (newValue != null) {
+                    sizeDiff += getAttributeSize(newValue, targetAttr);
+                }
+
+                // Adjust the page's size to account for the change in the record's size.
+                page.setSize(page.getSize() + sizeDiff);
+                page.setUpdated(true);
+
+                // If the updated page becomes overfull, call the storage manager to split the page.
+                if (page.isOverfull()) {
+                    storageManager.splitPage(page);
+                }
+
+            }
+        }
+
+        //DEBUGGING PURPOSE: TO SEE WHAT After THE TABLE BEFORE THE UPDATE
+        System.out.println("Debugging Purpose: Print Table after update");
+        for (Page page : pages) {
+            List<Record> records = page.getRecords();
+            for (Record record : records) {
+                System.out.println(record.getData());
+            }
+        }
+
+        System.out.println("SUCCESS\n");
+    }
+
+    /**
+    * Helper method to calculate the size (in bytes) of a given attribute value.
+    * For fixed-size types, it may use the attribute's declared size.
+    * For variable-length types like varchar, it calculates the actual byte length plus overhead.
+    */
+    private static int getAttributeSize(Object value, Attribute attr) {
+        if (value == null) return 0;
+        switch (attr.getType().toLowerCase()) {
+            case "integer":
+                return Integer.BYTES;
+            case "double":
+                return Double.BYTES;
+            case "boolean":
+                return 1;
+            case "char":
+                return attr.getSize(); // Assuming size is set correctly for fixed-length char.
+            case "varchar":
+                String s = (String) value;
+                return s.getBytes().length + Integer.BYTES; // Include 4 bytes for length storage.
+            default:
+                return 0;
+        }
+    }
+
+    private static boolean rowMatches(List<Object> recordData, List<List<Object>> filteredData) {
+        for (List<Object> match : filteredData) {
+            if (recordData.equals(match)) {
+                return true;
+            }
+        }
+        return false;
     }
 
 
