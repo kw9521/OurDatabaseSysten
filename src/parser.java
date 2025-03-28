@@ -449,14 +449,10 @@ public class parser {
         } else {
             // Validate that all selected attributes exist in the specified tables
             ArrayList<String> qualifiedAttr = new ArrayList<>();
-            System.out.println("allattr: "+allAttr.toString());
             for (String attr : allAttr) {
                 boolean found = false;
-                System.out.println("table objects: " +tableObjects);
                 for (Table table : tableObjects) {
-                    System.out.println("table.getattr(): "+table.getAttributes().toString());
                     for (Attribute attribute : table.getAttributes()) {
-                        System.out.println("compareing to c if attr itself: " + attr +" is equal to TABLE's attr: " +attribute.getName());
                         // Check for fully qualified attributes (tableName.attr)
                         if (attr.equals(table.getName() + "." + attribute.getName())) {
                             qualifiedAttr.add(attr); // Attribute is already qualified
@@ -573,11 +569,7 @@ public class parser {
 
         // Process ORDER BY clause if present
         if (orderByIndex != -1 && orderByIndex + 1 < words.length) {
-            String orderByCondition = words[orderByIndex + 1];
-        
-            System.out.println("orderby cond: " + orderByCondition);
-            System.out.println("col names: " + columnNames);
-        
+            String orderByCondition = words[orderByIndex + 1];        
             int attrIndex = getAttributeIndex(orderByCondition, columnNames);
             if (attrIndex == -1) {
                 // Error already handled in getAttributeIndex(), no need for further action
@@ -876,22 +868,6 @@ public class parser {
                 Object value = recordTuple.get(attrIndex); // Use the correct index
                 if (value != null) {
                     String valueString = value.toString();
-
-                    /////////// for testing ////////////
-                    System.out.println("--------------------");
-                    System.out.println("valuestring: "+valueString +", valueString.length(): " + valueString.length());
-                    System.out.println("j: " + j);
-                    System.out.println("allAttr.get(j): " + allAttr.get(j));
-
-                    // crashes at allattr.get(j) because allAttr only has a size of 1 right now so there is no value at index of 1
-
-                    System.out.println("maxAttributeLength.get(allAttr.get(j)): "+ maxAttributeLength.get(allAttr.get(j)));
-                    System.out.println("---------------");
-                    System.out.println("allAttr: " +allAttr);
-                    System.out.println("allAttr.get(j): " +allAttr.get(j) + " with j = "+j);
-
-                    //////////// for testing ////////////
-
                     // Check if length of the value is greater than the currently stored max length
                     if (valueString.length() > maxAttributeLength.get(allAttr.get(j))) {
                         maxAttributeLength.put(allAttr.get(j), valueString.length());
@@ -1054,8 +1030,6 @@ public class parser {
     
         List<Page> pages = storageManager.getPages(table.getTableID());
     
-        // Print table before delete
-        System.out.println("Debugging Purpose: Print Table before delete");
         for (Page page : pages) {
             for (Record record : page.getRecords()) {
                 System.out.println(record.getData());
@@ -1096,7 +1070,6 @@ public class parser {
         }
     
         // Print table after delete
-        System.out.println("Debugging Purpose: Print Table after delete");
         for (Page page : pages) {
             for (Record record : page.getRecords()) {
                 System.out.println(record.getData());
@@ -1191,8 +1164,6 @@ public class parser {
 
         List<List<Object>> whereTable = evaluateWhereTree(allRecordData, columnNames, conditionTree);
 
-        //DEBUGGING PURPOSE: TO SEE WHAT INSIDE THE TABLE BEFORE THE UPDATE
-        System.out.println("Debugging Purpose: Print Table before update");
         for (Page page : pages) {
             List<Record> records = page.getRecords();
             for (Record record : records) {
@@ -1271,8 +1242,6 @@ public class parser {
             }
         }
 
-        //DEBUGGING PURPOSE: TO SEE WHAT After THE TABLE BEFORE THE UPDATE
-        System.out.println("Debugging Purpose: Print Table after update");
         for (Page page : pages) {
             List<Record> records = page.getRecords();
             for (Record record : records) {

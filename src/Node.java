@@ -151,7 +151,7 @@ public class Node {
             return ((String)r1).equals((String)r2);
         }
         else{
-            throw new Exception("Mismatch datatypes in where clause");
+            throw new Exception("Mismatch datatypes in where clause\nERROR\nERROR\n");
         }
     }
 
@@ -296,7 +296,7 @@ public class Node {
             }
         }
         else{
-            throw new Exception("Mismatch datatypes in where clause");
+            throw new Exception("Mismatch datatypes in where clause\nERROR\n");
         }
     }
 
