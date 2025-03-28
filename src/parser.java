@@ -81,7 +81,6 @@ public class parser {
         System.out.println("\nSUCCESS\n");
     }    
     
-    // Broken?
     private static void alterTable(String inputLine, Catalog catalog, StorageManager storageManager) {
         String[] tokens = inputLine.split("\\s+", 5);
 
@@ -714,27 +713,22 @@ public class parser {
         return validRecords;
     }
 
+    // Note: This prints the table: listToPrint when given the specific select conditions. Takes on 
+    // the select from phase 1 but instead of dealing w specific Attribute types, it is a String
+
     // listToPrint = [ ["John", "8", "CS"], ["Poppy", "10", "Math"], ... ]
     private static void printGiven2List(List<List<Object>> listToPrint, ArrayList<String> allAttr){
         // used to store the max length of each attribute
-        // Key = atrr name
-        // Value = max length of the attribute's data
+        // Key = atrr name, Value = max length of the attribute's data
         HashMap<String, Integer> maxAttributeLength = new HashMap<String, Integer>();
-        // Attribute[] attrOfSelectedTable = selectedTable.getAttributes();
-
-
 
         // initial max length will be max length of the attribute name
         for (String attr : allAttr) {
             maxAttributeLength.put(attr, attr.length());
         }
 
-        // go thru each page of the selected table and get all records associated with this page via getRecords() 
-            // go thru all the records and call getData() of Record.java and get length of the name of the record
-            
-        
         // recordTuple = each individual tuple in the list of tuples
-        // [[tuple], [tuple], [],]
+        // listToPrint = [[tuple], [tuple], [],]
         for (List<Object> recordTuple : listToPrint) {
             
             // go thru each value in above tuple
@@ -748,14 +742,13 @@ public class parser {
                     if (valueString.length() > maxAttributeLength.get(allAttr.get(j))) {
                         // update the max length of the attribute
                         maxAttributeLength.put(allAttr.get(j), valueString.length());
-                        // replace? or add new one
                     }
                 }
             }
         }
 
-        // everything above is just to determine the max size of each tuple
-        // everything below will be for PRINTING to output
+        //      everything above is just to determine the max size of each tuple        //
+        //      everything below will be for PRINTING to output                         //
 
         // num of dashes = (number of attributes total + 1) + (each attribute's max length +1)
         int totalLength = 0;
