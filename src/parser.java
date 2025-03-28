@@ -1057,7 +1057,7 @@ public class parser {
         // Construct a list of column names from the table's attributes.
         List<String> columnNames = new ArrayList<>();
         for (Attribute attr : tableToUpdate.getAttributes()) {
-            columnNames.add(attr.getName());
+            columnNames.add(tableName + "." + attr.getName());
         }
 
         //Find the attribute to update
@@ -1082,25 +1082,25 @@ public class parser {
             return;
         }
 
+        //Get all pages.
+        List<Page> pages = storageManager.getPages(tableToUpdate.getTableID());
+
         //Parse where condition into tree
         ArrayList<String> conditionTokens = new ArrayList<>(Arrays.asList(whereClause.split("\\s+")));
-
-        System.out.println("DEBUGGING PURPOSE: Condition use to build where tree");
-        System.out.println(conditionTokens);
-
-
-
         Node conditionTree = buildWhereTree(conditionTokens);
         if (conditionTree == null) {
             System.err.println("Error parsing WHERE clause.");
             return;
         }
 
-        //Iterate over pages and records to apply the update.
-        List<Page> pages = storageManager.getPages(tableToUpdate.getTableID());
+        List<List<Object>> allRecordData = new ArrayList<>();
+        for (Page page : pages) {
+            for (Record record : page.getRecords()) {
+                allRecordData.add(record.getData());
+            }
+        }
 
-
-
+        List<List<Object>> whereTable = evaluateWhereTree(allRecordData, columnNames, conditionTree);
 
         //DEBUGGING PURPOSE: TO SEE WHAT INSIDE THE TABLE BEFORE THE UPDATE
         System.out.println("Debugging Purpose: Print Table before update");
@@ -1111,31 +1111,14 @@ public class parser {
             }
         }
 
-
-
-
-
-
+        //Apply Update
         for (Page page : pages) {
             List<Record> records = page.getRecords();
             for (Record record : records) {
 
-
-                System.out.println("DEBUGGING PURPOSE: column in table");
-                for(String s: columnNames){
-                    System.out.println(s);
-                }
-
-
-
                 //If current record don't satisfy where condition, skip
-                try {
-                    if (!conditionTree.evaluate(record.getData(), columnNames)) {
-                        continue; // Skip this record if the condition is false.
-                    }
-                } catch (Exception e) {
-                    System.err.println("Error evaluating condition: " + e.getMessage());
-                    return;
+                if (!rowMatches(record.getData(), whereTable)) {
+                    continue;
                 }
 
                 //Verify that new value is unique if attribute is primary key
@@ -1199,11 +1182,7 @@ public class parser {
             }
         }
 
-
-
-
-
-        //DEBUGGING PURPOSE: TO SEE WHAT INSIDE THE TABLE AFTER THE UPDATE
+        //DEBUGGING PURPOSE: TO SEE WHAT After THE TABLE BEFORE THE UPDATE
         System.out.println("Debugging Purpose: Print Table after update");
         for (Page page : pages) {
             List<Record> records = page.getRecords();
@@ -1211,10 +1190,6 @@ public class parser {
                 System.out.println(record.getData());
             }
         }
-
-
-
-
 
         System.out.println("SUCCESS\n");
     }
@@ -1243,6 +1218,14 @@ public class parser {
         }
     }
 
+    private static boolean rowMatches(List<Object> recordData, List<List<Object>> filteredData) {
+        for (List<Object> match : filteredData) {
+            if (recordData.equals(match)) {
+                return true;
+            }
+        }
+        return false;
+    }
 
 
     public static void parse(String statement, Catalog catalog, PageBuffer buffer, String dbDirectory, int pageSize, StorageManager storageManager) {
