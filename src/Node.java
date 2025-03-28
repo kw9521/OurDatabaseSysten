@@ -613,7 +613,7 @@ public class Node {
                         }
                     }
                     catch(Exception e){
-                        throw new Exception("Column type not a string!");
+                        throw e;
                     }
                 }
                 else{
