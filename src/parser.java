@@ -389,43 +389,41 @@ public class parser {
         // select * from foo orderby x;
         // select t1.a, t2.b, t2.c, t3.d from t1, t2, t3 where t1.a = t2.b and t2.c = t3.d orderby t1.a;    length = 20
 
-        // get rid of all spaces and commas, put rest of the words in an array
         String[] words = normalizedStatement.replace(",", "").trim().split("\\s+");
-        
-        // determine num of attrs and put all attr in a list
-        // allAtrr: ["t1.a", "t2.b", "t2.c", "t3.d"]
-        int numOfSelects = 0; // 4
-        ArrayList<String> allAttr = new ArrayList<>();
-        for (int i = 0; i<words.length-1; i++) {
-            if (words[i].equals("from")) {
-                break;
-            } if (!(words[i].equals("select"))) {
-                numOfSelects++;
-                allAttr.add(words[i]);
+
+        // Find the index positions of "from", "where", and "orderby"
+        int fromIndex = -1, whereIndex = -1, orderByIndex = -1;
+        for (int i = 0; i < words.length; i++) {
+            if (words[i].equalsIgnoreCase("from")) {
+                fromIndex = i;
+            } else if (words[i].equalsIgnoreCase("where")) {
+                whereIndex = i;
+            } else if (words[i].equalsIgnoreCase("orderby")) {
+                orderByIndex = i;
             }
         }
 
-        // determine how many tables we are working with
-        // allTables: ["t1", "t2", "t3"]
-        // starts at "from"
-        int numOfTables = 0; //3
-        ArrayList<String> allTables = new ArrayList<>();
-        for (int i = 0; i<words.length-1; i++) {
-            if (words[i].equals("where")) {
-                System.out.println("WHERE CALL");
-                ArrayList<String> conditionals = new ArrayList<>(Arrays.asList("foo > 123 or baz < \"foo\" and bar = 2.1".split(" ")));
-                Node tree = buildWhereTree(conditionals);
-                break;
-            } if (words[i].equals("from")) {
-                numOfTables++;
-                //allTables.add(words[i]);
-            }
+        // Error if "from" is missing: SELECT x; or SELECT x FROM; 
+        if (fromIndex == -1 || fromIndex == words.length - 1) {
+            System.out.println("Syntax error: Missing or incomplete 'from' clause.");
+            return;
         }
-            
-            //
-            // Implementation of From starts here
-            //
-        //Find and validate all table names in catalog
+
+        // Extract attributes between "select" and "from": SELECT x, y, z FROM ... 
+        // allAttr = [x, y, z]
+        ArrayList<String> allAttr = new ArrayList<>();
+        for (int i = 1; i < fromIndex; i++) {
+            allAttr.add(words[i]);
+        }
+
+        // Extract tables between "from" and either "where" or "orderby" or end of statement
+        ArrayList<String> allTables = new ArrayList<>();
+        int endOfTables = (whereIndex != -1) ? whereIndex : (orderByIndex != -1 ? orderByIndex : words.length);
+        for (int i = fromIndex + 1; i < endOfTables; i++) {
+            allTables.add(words[i]);
+        }
+
+        // Validate table existence in the catalog
         List<Table> tableObjects = new ArrayList<>();
         for (String tableName : allTables) {
             Table table = catalog.getTableByName(tableName);
@@ -436,65 +434,165 @@ public class parser {
             }
             tableObjects.add(table);
         }
-        
-        //Get all records from tables
+
+        // Get all records from tables and generate the Cartesian product
+        // SELECT x, y, z FROM t1, t2, t3 WHERE ... ORDER BY ...
+        // allRecords stores t1, t2, t3 records in a 3D list
         List<List<List<Object>>> allRecords = new ArrayList<>();
         List<String> columnNames = new ArrayList<>();
         for (Table table : tableObjects) {
             List<List<Object>> records = storageManager.getRecords(table.getTableID());
             String tableName = table.getName();
-            for(Attribute attr : table.getAttributes()){
+            for (Attribute attr : table.getAttributes()) {
                 columnNames.add(tableName + "." + attr.getName());
             }
             allRecords.add(records);
         }
-
-        // Get the cartesian products of all records
         List<List<Object>> cartesianProduct = cartesianProduct(allRecords);
 
-        //From here you have columnNames and all records which can be passed to evaluate where in this class
-        
-        //
-        // From implementation ends here
-        //
-
-        // allConditionals: ["t1.a", "="", "t2.b", "and", "t2.c", "="", "t3.d"]
-        int numOfWheres = 0; // 7
-        ArrayList<String> allConditionals = new ArrayList<>();
-        // starts at "where"
-        for (int i = numOfSelects+numOfTables+2; i<words.length-1; i++) {
-            if (words[i].equals("orderby")) {
-                break;
-            } if (!(words[i].equals("where"))) {
-                numOfWheres++;
+        // Process WHERE clause if present
+        List<List<Object>> validRecords = cartesianProduct;
+        if (whereIndex != -1) {
+            ArrayList<String> allConditionals = new ArrayList<>();
+            int whereEnd = (orderByIndex != -1) ? orderByIndex : words.length;
+            for (int i = whereIndex + 1; i < whereEnd; i++) {
                 allConditionals.add(words[i]);
             }
+            Node tree = buildWhereTree(allConditionals);
+            if (tree != null) {
+                validRecords = evaluateWhereTree(cartesianProduct, columnNames, tree);
+            }
         }
-        // where: will return a 2d array of values that are valid
-        // List<List<Object>> wtvDylanNamesIt= [ [record1], [record2], ... ]
 
-        //        START OF GROUP BY       //
+        // Process ORDER BY clause if present
+        if (orderByIndex != -1 && orderByIndex + 1 < words.length) {
+            String orderByCondition = words[orderByIndex + 1];
+            int attrIndex = getAttributeIndex(orderByCondition, columnNames);
+            if (attrIndex != -1) {
+                validRecords = sortRecords(validRecords, attrIndex);
+            } else {
+                System.out.println("Invalid ORDER BY condition.");
+                return;
+            }
+        }
 
-        // orderBy: ["t1.a"]
-        String orderByCondition = words[words.length-2];     // last word before ";", index 17
+        // Print the final results
+        printGiven2List(validRecords, allAttr);
+
+
+
+
+        ////////////////////////// incorrect previous select ////////////////////
+
+        // loop thru nromaledStatement
+            // determine if there is a "where" clause or "orderby" clause
+
+        // get rid of all spaces and commas, put rest of the words in an array
+        // String[] words = normalizedStatement.replace(",", "").trim().split("\\s+");
         
-        // 1. get index of orderby condition
-        int attrIndex = getAttributeIndex(orderByCondition, allAttr);
-        if (attrIndex == -1) {
-            System.out.println("Invalid OrderBy Conditon");
-            return;
-        }
+        // // determine num of attrs and put all attr in a list
+        // // allAtrr: ["t1.a", "t2.b", "t2.c", "t3.d"]
+        // int numOfSelects = 0; // 4
+        // ArrayList<String> allAttr = new ArrayList<>();
+        // for (int i = 0; i<words.length-1; i++) {
+        //     if (words[i].equals("from")) {
+        //         break;
+        //     } if (!(words[i].equals("select"))) {
+        //         numOfSelects++;
+        //         allAttr.add(words[i]);
+        //     }
+        // }
 
-        // sort the records based on the order by condition
+        // // determine how many tables we are working with
+        // // allTables: ["t1", "t2", "t3"]
+        // // starts at "from"
+        // int numOfTables = 0; //3
+        // ArrayList<String> allTables = new ArrayList<>();
+        // for (int i = 0; i<words.length-1; i++) {
+        //     if (words[i].equals("where")) {
+        //         System.out.println("WHERE CALL");
+        //         ArrayList<String> conditionals = new ArrayList<>(Arrays.asList("foo > 123 or baz < \"foo\" and bar = 2.1".split(" ")));
+        //         Node tree = buildWhereTree(conditionals);
+        //         break;
+        //     } if (words[i].equals("from")) {
+        //         numOfTables++;
+        //         //allTables.add(words[i]);
+        //     }
+        // }
+            
+        //     //
+        //     // Implementation of From starts here
+        //     //
+        // //Find and validate all table names in catalog
+        // List<Table> tableObjects = new ArrayList<>();
+        // for (String tableName : allTables) {
+        //     Table table = catalog.getTableByName(tableName);
+        //     if (table == null) {
+        //         System.out.println("No such table " + tableName);
+        //         System.out.println("ERROR\n");
+        //         return;
+        //     }
+        //     tableObjects.add(table);
+        // }
+        
+        // //Get all records from tables
+        // List<List<List<Object>>> allRecords = new ArrayList<>();
+        // List<String> columnNames = new ArrayList<>();
+        // for (Table table : tableObjects) {
+        //     List<List<Object>> records = storageManager.getRecords(table.getTableID());
+        //     String tableName = table.getName();
+        //     for(Attribute attr : table.getAttributes()){
+        //         columnNames.add(tableName + "." + attr.getName());
+        //     }
+        //     allRecords.add(records);
+        // }
 
-        // 2. List<List<Object>> finalOrderBySorted = sortRecords(wtvDylanNamesIt, attrIndex);
-        // 3. print finalOrderBySorted
+        // // Get the cartesian products of all records
+        // List<List<Object>> cartesianProduct = cartesianProduct(allRecords);
+
+        // //From here you have columnNames and all records which can be passed to evaluate where in this class
+        
+        // //
+        // // From implementation ends here
+        // //
+
+        // // allConditionals: ["t1.a", "="", "t2.b", "and", "t2.c", "="", "t3.d"]
+        // int numOfWheres = 0; // 7
+        // ArrayList<String> allConditionals = new ArrayList<>();
+        // // starts at "where"
+        // for (int i = numOfSelects+numOfTables+2; i<words.length-1; i++) {
+        //     if (words[i].equals("orderby")) {
+        //         break;
+        //     } if (!(words[i].equals("where"))) {
+        //         numOfWheres++;
+        //         allConditionals.add(words[i]);
+        //     }
+        // }
+        // // where: will return a 2d array of values that are valid
+        // // List<List<Object>> wtvDylanNamesIt= [ [record1], [record2], ... ]
+
+        // //        START OF GROUP BY       //
+
+        // // orderBy: ["t1.a"]
+        // String orderByCondition = words[words.length-2];     // last word before ";", index 17
+        
+        // // 1. get index of orderby condition
+        // int attrIndex = getAttributeIndex(orderByCondition, allAttr);
+        // if (attrIndex == -1) {
+        //     System.out.println("Invalid OrderBy Conditon");
+        //     return;
+        // }
+
+        // // sort the records based on the order by condition
+
+        // // 2. List<List<Object>> finalOrderBySorted = sortRecords(wtvDylanNamesIt, attrIndex);
+        // // 3. print finalOrderBySorted
     }
 
     // order by will always be an element in the select's parsed str
     // allAttr[] = t1.a, t2.b, t2.c, t3.d
     // attrName = t1.a
-    private static int getAttributeIndex(String attrName, ArrayList<String> allAttr) {
+    private static int getAttributeIndex(String attrName, List<String> allAttr) {
         for (int i = 0; i < allAttr.size(); i++) {
             if (attrName.equals(allAttr.get(i))) {
                 return i;
