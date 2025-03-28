@@ -449,10 +449,14 @@ public class parser {
         } else {
             // Validate that all selected attributes exist in the specified tables
             ArrayList<String> qualifiedAttr = new ArrayList<>();
+            System.out.println("allattr: "+allAttr.toString());
             for (String attr : allAttr) {
                 boolean found = false;
+                System.out.println("table objects: " +tableObjects);
                 for (Table table : tableObjects) {
+                    System.out.println("table.getattr(): "+table.getAttributes().toString());
                     for (Attribute attribute : table.getAttributes()) {
+                        System.out.println("compareing to c if attr itself: " + attr +" is equal to TABLE's attr: " +attribute.getName());
                         // Check for fully qualified attributes (tableName.attr)
                         if (attr.equals(table.getName() + "." + attribute.getName())) {
                             qualifiedAttr.add(attr); // Attribute is already qualified
@@ -469,6 +473,7 @@ public class parser {
                             }
                             qualifiedAttr.add(table.getName() + "." + attribute.getName());
                             found = true;
+                            break;
                         }
                     }
                 }
@@ -877,20 +882,29 @@ public class parser {
         }
 
         // recordTuple = each individual tuple in the list of tuples
-        // listToPrint = [[tuple], [tuple], [],]
+        // listToPrint = ( (1 2.1), (2 3.7), (3 2.1), (4 0.1), (5 7.8) )
+        // allAttr = [foo.x]
         for (List<Object> recordTuple : listToPrint) {
             
             // go thru each value in above tuple
              // tuple: [value, value, value, ...]
             // System.out.println("record type size is " + recordTuple.size());
-            for (int j = 0; j < recordTuple.size(); j++) {
+            for (int j = 0; j < allAttr.size(); j++) {
                 Object value = recordTuple.get(j);
                 if (value != null) {
                     String valueString = value.toString();
                     
-                    // System.out.println("value string: " +valueString + "   value string length: " + valueString.length());
-                    // System.out.println(allAttr.toString() + " at pos" +j+" is" + allAttr.get(j));
-                    // System.out.println("attr's max length rn is " + maxAttributeLength.get(allAttr.get(j)));
+                    System.out.println("--------------------");
+                    System.out.println("valuestring: "+valueString +", valueString.length(): " + valueString.length());
+                    System.out.println("j: " + j);
+                    System.out.println("allAttr.get(j): " + allAttr.get(j));
+
+                    // crashes at allattr.get(j) because allAttr only has a size of 1 right now so there is no value at index of 1
+
+                    System.out.println("maxAttributeLength.get(allAttr.get(j)): "+ maxAttributeLength.get(allAttr.get(j)));
+                    System.out.println("---------------");
+                    System.out.println("allAttr: " +allAttr);
+                    System.out.println("allAttr.get(j): " +allAttr.get(j) + " with j = "+j);
                     
                     // go thru entire tuple, check if length of that attr's value is greater than the one currently stored in the hashmap
                     if (valueString.length() > maxAttributeLength.get(allAttr.get(j))) {
@@ -973,9 +987,9 @@ public class parser {
         // print "|" at the end
         // [ [Tuples], [Tuples], [Tuples], ... ]
         for (List<Object> recordTuple : listToPrint) {
-
+            
             // [value, value, value, ...]
-            for (int j = 0; j < recordTuple.size(); j++) {
+            for (int j = 0; j < allAttr.size(); j++) {
 
                 // value of curr attr
                 Object value = recordTuple.get(j);
