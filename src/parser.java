@@ -1172,6 +1172,108 @@ public class parser {
 
     }
 
+    private static void delete(String normalizedStatement, Catalog catalog, StorageManager storageManager){
+        normalizedStatement = normalizedStatement.trim();
+        if (normalizedStatement.endsWith(";")) {
+            normalizedStatement = normalizedStatement.substring(0, normalizedStatement.length() - 1);
+        }
+    
+        int fromIndex = normalizedStatement.toLowerCase().indexOf(" from ");
+        int whereIndex = normalizedStatement.toLowerCase().indexOf(" where ");
+    
+        if (fromIndex == -1) {
+            System.err.println("Missing FROM clause.");
+            return;
+        }
+    
+        String tableName;
+        String whereClause = null;
+    
+        if (whereIndex == -1) {
+            tableName = normalizedStatement.substring(fromIndex + 6).trim();
+        } else {
+            tableName = normalizedStatement.substring(fromIndex + 6, whereIndex).trim();
+            whereClause = normalizedStatement.substring(whereIndex + 7).trim();
+        }
+    
+        // Get the table
+        Table table = catalog.getTableByName(tableName);
+        if (table == null) {
+            System.err.println("Table not found: " + tableName);
+            return;
+        }
+    
+        List<String> columnNames = new ArrayList<>();
+        for (Attribute attr : table.getAttributes()) {
+            columnNames.add(tableName + "." + attr.getName());
+        }
+    
+        // Build WHERE tree if applicable
+        Node whereTree = null;
+        if (whereClause != null) {
+            ArrayList<String> tokens = new ArrayList<>(Arrays.asList(whereClause.split("\\s+")));
+            whereTree = buildWhereTree(tokens);
+            if (whereTree == null) {
+                System.err.println("Error parsing WHERE clause.");
+                return;
+            }
+        }
+    
+        List<Page> pages = storageManager.getPages(table.getTableID());
+    
+        // Print table before delete
+        System.out.println("Debugging Purpose: Print Table before delete");
+        for (Page page : pages) {
+            for (Record record : page.getRecords()) {
+                System.out.println(record.getData());
+            }
+        }
+    
+        // Collect column-based data to evaluate WHERE
+        List<List<Object>> allRecordData = new ArrayList<>();
+        for (Page page : pages) {
+            for (Record record : page.getRecords()) {
+                allRecordData.add(record.getData());
+            }
+        }
+    
+        List<List<Object>> matchingRecords = whereTree != null
+            ? evaluateWhereTree(allRecordData, columnNames, whereTree)
+            : allRecordData; // No WHERE clause means all records match
+    
+        // Delete matching records
+        for (Page page : pages) {
+            List<Record> records = page.getRecords();
+            int i = 0;
+    
+            while (i < records.size()) {
+                Record record = records.get(i);
+                List<Object> recordData = record.getData();
+    
+                if (rowMatches(recordData, matchingRecords)) {
+                    page.deleteRecord(record, i);
+                    if (page.getRecordCount() == 0) {
+                        catalog.getTableByName(tableName).dropPage(page.getPageId());
+                        break; // No more records in this page
+                    }
+                } else {
+                    i++;
+                }
+            }
+        }
+    
+        // Print table after delete
+        System.out.println("Debugging Purpose: Print Table after delete");
+        for (Page page : pages) {
+            for (Record record : page.getRecords()) {
+                System.out.println(record.getData());
+            }
+        }
+    
+        System.out.println("SUCCESS\n");
+    }
+    
+
     private static void update(String normalizedStatement, Catalog catalog, StorageManager storageManager){
         normalizedStatement = normalizedStatement.trim();
         if (normalizedStatement.endsWith(";")) {
@@ -1428,7 +1530,7 @@ public class parser {
                 break;
 
             case "delete":
-                //delete(statement, catalog, storageManager);
+                delete(statement, catalog, storageManager);
                 break;
 
             case "update":
