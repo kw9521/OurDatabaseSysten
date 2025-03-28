@@ -526,148 +526,112 @@ public class parser {
             for (int i = whereIndex + 1; i < whereEnd; i++) {
                 allConditionals.add(words[i]);
             }
+        
+            // Resolve unqualified attributes and check for ambiguity
+            for (int i = 0; i < allConditionals.size(); i++) {
+                String condition = allConditionals.get(i);
+        
+                // Skip operators and logical keywords
+                if (condition.equals("=") || condition.equals(">") || condition.equals("<") ||
+                    condition.equals(">=") || condition.equals("<=") || condition.equals("!=") ||
+                    condition.equalsIgnoreCase("and") || condition.equalsIgnoreCase("or")) {
+                    continue;
+                }
+        
+                // Check for ambiguous attributes
+                int matchedIndex = -1;
+                int matchCount = 0;
+                for (int j = 0; j < columnNames.size(); j++) {
+                    String columnName = columnNames.get(j);
+                    String[] parts = columnName.split("\\.");
+                    if (parts.length == 2 && parts[1].equals(condition)) {
+                        matchCount++;
+                        matchedIndex = j;
+                    }
+                }
+        
+                // Ambiguity detected
+                if (matchCount > 1) {
+                    System.out.println("Ambiguous attribute '" + condition + "' found in multiple tables.");
+                    System.out.println("ERROR\n");
+                    return;
+                }
+        
+                // Replace unqualified attribute with fully qualified name
+                if (matchCount == 1) {
+                    allConditionals.set(i, columnNames.get(matchedIndex));
+                }
+            }
+        
+            // Build where tree after resolving ambiguity
             Node tree = buildWhereTree(allConditionals);
             if (tree != null) {
                 validRecords = evaluateWhereTree(cartesianProduct, columnNames, tree);
             }
         }
+        
 
         // Process ORDER BY clause if present
         if (orderByIndex != -1 && orderByIndex + 1 < words.length) {
             String orderByCondition = words[orderByIndex + 1];
+        
+            System.out.println("orderby cond: " + orderByCondition);
+            System.out.println("col names: " + columnNames);
+        
             int attrIndex = getAttributeIndex(orderByCondition, columnNames);
-            if (attrIndex != -1) {
-                validRecords = sortRecords(validRecords, attrIndex);
-            } else {
-                System.out.println("Invalid ORDER BY condition.");
+            if (attrIndex == -1) {
+                // Error already handled in getAttributeIndex(), no need for further action
                 return;
             }
+        
+            // Sort records by the found attribute index
+            validRecords = sortRecords(validRecords, attrIndex);
         }
+        
 
         // Print the final results
         printGiven2List(validRecords, allAttr, attrIndices);
-
-
-
-
-        ////////////////////////// incorrect previous select ////////////////////
-
-        // loop thru nromaledStatement
-            // determine if there is a "where" clause or "orderby" clause
-
-        // get rid of all spaces and commas, put rest of the words in an array
-        // String[] words = normalizedStatement.replace(",", "").trim().split("\\s+");
-        
-        // // determine num of attrs and put all attr in a list
-        // // allAtrr: ["t1.a", "t2.b", "t2.c", "t3.d"]
-        // int numOfSelects = 0; // 4
-        // ArrayList<String> allAttr = new ArrayList<>();
-        // for (int i = 0; i<words.length-1; i++) {
-        //     if (words[i].equals("from")) {
-        //         break;
-        //     } if (!(words[i].equals("select"))) {
-        //         numOfSelects++;
-        //         allAttr.add(words[i]);
-        //     }
-        // }
-
-        // // determine how many tables we are working with
-        // // allTables: ["t1", "t2", "t3"]
-        // // starts at "from"
-        // int numOfTables = 0; //3
-        // ArrayList<String> allTables = new ArrayList<>();
-        // for (int i = 0; i<words.length-1; i++) {
-        //     if (words[i].equals("where")) {
-        //         System.out.println("WHERE CALL");
-        //         ArrayList<String> conditionals = new ArrayList<>(Arrays.asList("foo > 123 or baz < \"foo\" and bar = 2.1".split(" ")));
-        //         Node tree = buildWhereTree(conditionals);
-        //         break;
-        //     } if (words[i].equals("from")) {
-        //         numOfTables++;
-        //         //allTables.add(words[i]);
-        //     }
-        // }
-            
-        //     //
-        //     // Implementation of From starts here
-        //     //
-        // //Find and validate all table names in catalog
-        // List<Table> tableObjects = new ArrayList<>();
-        // for (String tableName : allTables) {
-        //     Table table = catalog.getTableByName(tableName);
-        //     if (table == null) {
-        //         System.out.println("No such table " + tableName);
-        //         System.out.println("ERROR\n");
-        //         return;
-        //     }
-        //     tableObjects.add(table);
-        // }
-        
-        // //Get all records from tables
-        // List<List<List<Object>>> allRecords = new ArrayList<>();
-        // List<String> columnNames = new ArrayList<>();
-        // for (Table table : tableObjects) {
-        //     List<List<Object>> records = storageManager.getRecords(table.getTableID());
-        //     String tableName = table.getName();
-        //     for(Attribute attr : table.getAttributes()){
-        //         columnNames.add(tableName + "." + attr.getName());
-        //     }
-        //     allRecords.add(records);
-        // }
-
-        // // Get the cartesian products of all records
-        // List<List<Object>> cartesianProduct = cartesianProduct(allRecords);
-
-        // //From here you have columnNames and all records which can be passed to evaluate where in this class
-        
-        // //
-        // // From implementation ends here
-        // //
-
-        // // allConditionals: ["t1.a", "="", "t2.b", "and", "t2.c", "="", "t3.d"]
-        // int numOfWheres = 0; // 7
-        // ArrayList<String> allConditionals = new ArrayList<>();
-        // // starts at "where"
-        // for (int i = numOfSelects+numOfTables+2; i<words.length-1; i++) {
-        //     if (words[i].equals("orderby")) {
-        //         break;
-        //     } if (!(words[i].equals("where"))) {
-        //         numOfWheres++;
-        //         allConditionals.add(words[i]);
-        //     }
-        // }
-        // // where: will return a 2d array of values that are valid
-        // // List<List<Object>> wtvDylanNamesIt= [ [record1], [record2], ... ]
-
-        // //        START OF GROUP BY       //
-
-        // // orderBy: ["t1.a"]
-        // String orderByCondition = words[words.length-2];     // last word before ";", index 17
-        
-        // // 1. get index of orderby condition
-        // int attrIndex = getAttributeIndex(orderByCondition, allAttr);
-        // if (attrIndex == -1) {
-        //     System.out.println("Invalid OrderBy Conditon");
-        //     return;
-        // }
-
-        // // sort the records based on the order by condition
-
-        // // 2. List<List<Object>> finalOrderBySorted = sortRecords(wtvDylanNamesIt, attrIndex);
-        // // 3. print finalOrderBySorted
     }
 
     // order by will always be an element in the select's parsed str
     // allAttr[] = t1.a, t2.b, t2.c, t3.d
     // attrName = t1.a
     private static int getAttributeIndex(String attrName, List<String> allAttr) {
+        // Check for fully qualified match (e.g., foo.x or bar.x)
+        if (allAttr.contains(attrName)) {
+            return allAttr.indexOf(attrName);
+        }
+    
+        // Check for unqualified attribute match (e.g., x matches foo.x or bar.x)
+        int matchedIndex = -1;
+        int matchCount = 0;
+    
         for (int i = 0; i < allAttr.size(); i++) {
-            if (attrName.equals(allAttr.get(i))) {
-                return i;
+            String columnName = allAttr.get(i);
+            // Split to check for unqualified match
+            String[] parts = columnName.split("\\.");
+            if (parts.length == 2 && parts[1].equals(attrName)) {
+                matchCount++;
+                matchedIndex = i;
             }
         }
+    
+        // If more than one table has the same attribute, print ambiguous error
+        if (matchCount > 1) {
+            System.out.println("Ambiguous attribute '" + attrName + "' found in multiple tables.");
+            System.out.println("ERROR\n");
+            return -1;
+        }
+    
+        // If exactly one match is found, return the matched index
+        if (matchCount == 1) {
+            return matchedIndex;
+        }
+    
+        // Attribute not found in any table
         return -1;
     }
+    
 
     public static List<List<Object>> sortRecords(List<List<Object>> wtvDylanNamesIt, int attrIndex) {
         return mergeSort(wtvDylanNamesIt, attrIndex);
@@ -751,6 +715,7 @@ public class parser {
         ArrayList<String> operands = new ArrayList<>();
         ArrayList<String> andOrList = new ArrayList<>();
         ArrayList<Node> nodes = new ArrayList<>();
+        
         for(String condition : conditionals){
             switch(condition){
                 case "=":
