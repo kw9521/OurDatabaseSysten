@@ -580,9 +580,11 @@ public class Node {
             else{
                 //Check to make sure we have correct syntax for column names
                 if(leftVal.split("\\.").length == 2 && rightVal.split("\\.").length == 2){
+                    String table1 = leftVal.split("\\.")[0];
+                    String table2 = rightVal.split("\\.")[0];
                     String column1 = leftVal.split("\\.")[1];
                     String column2 = rightVal.split("\\.")[1];
-                    if(column1.equals(column2)){
+                    if(column1.equals(column2) && table1.equals(table2)){
                         throw new Exception("Can not compare on the same columns!");
                     }
 
@@ -593,7 +595,7 @@ public class Node {
                     if(c1 >= columnNames.size() || c2 >= columnNames.size()){
                         throw new Exception("Column Name not found!");
                     }
-
+                    
                     try{
                         switch(operator){
                             case "=":
