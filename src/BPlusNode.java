@@ -10,5 +10,6 @@ import java.util.List;
     }
 
     abstract BPlusNode insert(int key, RecordPointer pointer);
+    abstract boolean delete(int key);
     abstract RecordPointer search(int key);
 }
