@@ -5,80 +5,94 @@ import java.util.stream.IntStream;
 
 public class parser {
     
-    private static void createTable(String statement, Catalog catalog) {
-        String[] tokens = statement.trim().split("\\s+", 3);
-        
-        if (tokens.length < 3 || !tokens[0].equalsIgnoreCase("create") || !tokens[1].equalsIgnoreCase("table")) {
-            System.out.println("Syntax error in CREATE TABLE command.");
+    private static void createTable(String inputLine, Catalog catalog) {
+        String[] parts = inputLine.trim().split("\\s+", 3);
+    
+        if (parts.length < 3 || !parts[0].equalsIgnoreCase("create") || !parts[1].equalsIgnoreCase("table")) {
+            System.err.println("Syntax error in CREATE TABLE command.");
             return;
         }
     
-        String tableDef = tokens[2].trim();
-        int tableNameEnding = tableDef.indexOf('(');
+        String tableDef = parts[2].trim();
+        int openParenIdx = tableDef.indexOf('(');
     
-        if (tableNameEnding == -1 || !tableDef.endsWith(");")) {
-            System.out.println("Error: Expected '(' after table name and ');' at the end of the command.");
+        if (openParenIdx == -1 || !tableDef.endsWith(");")) {
+            System.err.println("Expected '(' after table name and ');' at the end of the statement.");
             return;
         }
     
-        String tableName = tableDef.substring(0, tableNameEnding).trim();
-        String attributesLine = tableDef.substring(tableNameEnding + 1, tableDef.length() - 2).trim();
-        if(attributesLine.trim().equals("")){
-            System.err.println("\nTable with no attributes");
-            System.err.println("ERROR\n");
+        String tableName = tableDef.substring(0, openParenIdx).trim();
+        String attributesLine = tableDef.substring(openParenIdx + 1, tableDef.length() - 2).trim();
+    
+        if (attributesLine.isEmpty()) {
+            System.err.println("Error: Table must have at least one attribute.");
             return;
         }
     
-        List<Attribute> attributes = Arrays.stream(attributesLine.split(",\\s*"))
-                                           .map(Attribute::parse)
-                                           .collect(Collectors.toList());
-        
-        if(attributes.contains(null)){
-            String invalidType = attributesLine.split(",\\s*")[attributes.indexOf(null)].split(" ")[1];
-            System.err.println("Invalid datatype \"" + invalidType + "\"");
-            System.err.println("ERROR\n");
+        // Parse attributes
+        String[] tokens = attributesLine.split(",\\s*");
+        ArrayList<Attribute> attributes = new ArrayList<>();
+        Attribute primaryKey = null;
+    
+        for (String token : tokens) {
+            Attribute attr = Attribute.parse(token.trim());
+    
+            if (attr == null) {
+                String invalidType = token.trim().split("\\s+")[1];
+                System.err.println("Invalid datatype \"" + invalidType + "\"");
+                System.err.println("ERROR");
+                return;
+            }
+    
+            attributes.add(attr);
+            if (attr.getPrimaryKey()) primaryKey = attr;
+        }
+    
+        // Ensure exactly one primary key
+        long primaryKeyCount = attributes.stream().filter(Attribute::getPrimaryKey).count();
+        if (primaryKeyCount != 1) {
+            System.err.println(primaryKeyCount == 0
+                ? "Error: No primary key defined."
+                : "Error: More than one primary key.");
             return;
         }
     
-        // Ensure exactly one primary key exists
-        long primaryKeyCount = attributes.stream().filter(Attribute::isPrimaryKey).count();
-        if (primaryKeyCount == 0) {
-            System.err.println("No primary key defined\nERROR\n");
-            return;
-        } else if (primaryKeyCount > 1) {
-            System.err.println("More than one primarykey");
-            System.out.println("ERROR\n");
-            return;
-        }
-
+        // Check for duplicate attribute names
         Set<String> seen = new HashSet<>();
         Set<String> duplicates = attributes.stream()
-                                .map(Attribute::getName)
-                                .filter(name -> !seen.add(name))
-                                .collect(Collectors.toSet());
-        if(duplicates.size() > 0){
-            String values = "";
-            for(String value : duplicates){
-                values += "\"" + value + "\" ";
-            }
-            values = values.trim();
-            System.err.println("Duplicate attribute name " + values);
-            System.err.println("ERROR\n");
+                                           .map(Attribute::getName)
+                                           .filter(name -> !seen.add(name))
+                                           .collect(Collectors.toSet());
+    
+        if (!duplicates.isEmpty()) {
+            String duplicateNames = String.join(" ", duplicates.stream().map(n -> "\"" + n + "\"").toList());
+            System.err.println("Duplicate attribute name(s): " + duplicateNames);
+            System.err.println("ERROR");
             return;
         }
     
         // Check if table already exists
-        if (catalog.getTables().stream().anyMatch(table -> table.getName().equals(tableName))) {
-            System.err.println("\nTable of name " + tableName + " already exists");
-            System.err.println("ERROR\n");
+        boolean tableExists = catalog.getTables().stream()
+                                     .anyMatch(table -> table.getName().equalsIgnoreCase(tableName));
+    
+        if (tableExists) {
+            System.err.println("Error: Table \"" + tableName + "\" already exists.");
             return;
         }
     
-        // Create and add the new table
+        // Create and register the table
         Table table = new Table(tableName, catalog.getNextTableID(), attributes.size(), attributes.toArray(new Attribute[0]));
         catalog.addTable(table);
     
-        System.out.println("\nSUCCESS\n");
+        // Create a B+ Tree index if indexing is enabled
+        if (Main.getIndexing()) {
+            ArrayList<BPlusTree> trees = Main.getBPlusTrees();
+            BPlusTree index = new BPlusTree(primaryKey, table.getTableID());
+            trees.add(index);
+            System.out.println("BPlus Tree created successfully.");
+        }
+    
+        System.out.println("Table \"" + tableName + "\" created successfully.");
     }    
     
     private static void alterTable(String inputLine, Catalog catalog, StorageManager storageManager) {
@@ -228,7 +242,8 @@ public class parser {
     
             ArrayList<Byte> nullBitMap = new ArrayList<>(table.getAttributesCount());
             ArrayList<Object> recordValues = new ArrayList<>();
-    
+            Object primaryKeyValue = null; // used for BPlusTree
+
             for (int i = 0; i < values.length; i++) {
                 String value = values[i].trim();
                 Attribute attribute = table.getAttributes()[i];
@@ -274,14 +289,26 @@ public class parser {
     
                 recordValues.add(parsedValue);
                 nullBitMap.add((byte) 0);
+
+                if (attribute.getPrimaryKey()) primaryKeyValue = parsedValue;
             }
     
             int recordSize = calculateRecordSize(recordValues, table.getAttributes());
             Record newRecord = new Record(recordSize, recordValues, nullBitMap);
-    
-            if (!storageManager.addRecord(catalog, newRecord, table.getTableID())) {
-                return;
-            }
+                // choose insert operation based on if indexing is on or not
+                if (Main.getIndexing()) {
+                    BPlusTree bPlusTree = Main.getBPlusTrees().get(table.getTableID());
+                    boolean success = bPlusTree.insert(newRecord, primaryKeyValue, recordSize);
+                    if (!success) {
+                        System.out.println("Insert failed: duplicate primary key");
+                        return;
+                    }
+                }
+                else{
+                    if (!storageManager.addRecord(catalog, newRecord, table.getTableID())) {
+                        return;
+                    }
+                }
         }
         System.out.println("SUCCESS\n");
     

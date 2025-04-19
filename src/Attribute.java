@@ -65,6 +65,10 @@ public class Attribute {
         return this.primaryKey;
     }
 
+    public boolean getPrimaryKey(){
+        return this.primaryKey;
+    }
+
     public void setUnique(boolean unique){
         this.unique = unique;
     }

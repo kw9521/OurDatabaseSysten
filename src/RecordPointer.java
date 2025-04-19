@@ -12,4 +12,13 @@ class RecordPointer {
     public String toString() {
         return "(Page: " + pageNumber + ", Index: " + index + ")";
     }
+
+    public int getPageNumber() {
+        return pageNumber;
+    }
+    
+    public int getIndex() {
+        return index;
+    }
+    
 }

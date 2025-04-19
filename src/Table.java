@@ -1,4 +1,5 @@
 // Table = collection of pages
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.io.DataInputStream;
@@ -13,6 +14,8 @@ public class Table {
     private int attributesCount; 
     private int pageCount;
     private int[] pageLocations; // pageId
+    private int numNodes; // Number of nodes in tree
+    private ArrayList<Integer> freeSpaces; // Open spaces in index file for nodes, due to deleted nodes
 
     public Table(String name, int tableID, int attributesCount, Attribute[] attributes){
         this.name = name;
@@ -22,6 +25,9 @@ public class Table {
 
         this.pageCount = 0;
         this.pageLocations = new int[0];
+
+        this.numNodes = 0;
+        this.freeSpaces = new ArrayList<>();
     }
 
     public void addPage(Page page){
@@ -116,6 +122,30 @@ public class Table {
     
     public int[] getPageLocations(){
         return this.pageLocations;
+    }
+
+    public void addTreeNode() {
+        this.numNodes++;
+    }
+
+    public void deleteTreeNode() {
+        this.numNodes--;
+    }
+
+    public int getNumNodes() {
+        return this.numNodes;
+    }
+
+    public void setNumNodes(int numNodes) {
+        this.numNodes = numNodes;
+    }
+
+    private void setFreeSpaces(ArrayList<Integer> freeSpacesList) {
+        this.freeSpaces = freeSpacesList;
+    }
+    
+    public ArrayList<Integer> getFreeSpaces() {
+        return freeSpaces;
     }
 
     public void displayTable(){
