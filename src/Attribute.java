@@ -142,7 +142,7 @@ public class Attribute {
         boolean unique = dis.readBoolean();
         int size = dis.readInt();
 
-        return new Attribute(name, type, unique, nonNull, primaryKey, size);
+        return new Attribute(name, type, nonNull, primaryKey, unique, size);
     }
 
     public int calcByteSize(){

@@ -108,6 +108,16 @@ public class Table {
         return attributesCount;
     }
 
+    public boolean hasPrimaryKey(Table table) { 
+        for(int i = 0; i < table.getAttributesCount(); i++) {
+            Attribute attr=table.attributes[i];
+            if(attr.getPrimaryKey()) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     public int getPageCount(){
         return this.pageCount;
     }
