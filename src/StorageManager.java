@@ -1,4 +1,5 @@
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.OptionalInt;
 import java.util.stream.IntStream;
@@ -90,50 +91,63 @@ public class StorageManager {
         return pages;
     }
 
+    private int findPrimaryKeyIndex(Attribute[] attrs) {
+        for (int i = 0; i < attrs.length; i++) {
+            if (attrs[i].isPrimaryKey()) return i;
+        }
+        throw new IllegalStateException("No primary key found!");
+    }    
+
     // Splits a page into two when it exceeds capacity
     public Record splitPage(Page page) {
-        int totalRecords = page.getRecordCount();
+        List<Record> allRecords = new ArrayList<>(page.getRecords());
+        Attribute[] attrs = catalog.getTable(page.getTableId()).getAttributes();
+        int pkIndex = findPrimaryKeyIndex(attrs);
+
+        // Ensure correct ordering before splitting
+        allRecords.sort(Comparator.comparing(r -> (Comparable) r.getData().get(pkIndex)));
+
+        int totalRecords = allRecords.size();
         int midIndex = totalRecords / 2;
 
-        // Extract first and second halves efficiently
-        List<Record> firstHalf = new ArrayList<>(page.getRecords().subList(0, midIndex));
-        List<Record> secondHalf = new ArrayList<>(page.getRecords().subList(midIndex, totalRecords));
+        List<Record> firstHalf = new ArrayList<>(allRecords.subList(0, midIndex));
+        List<Record> secondHalf = new ArrayList<>(allRecords.subList(midIndex, totalRecords));
 
-        // First record of the new page (important for maintaining order)
         Record firstRecInNewPage = secondHalf.get(0);
 
-        // Calculate new sizes (accounting for numRecords integer)
         int firstPageSize = 4 + firstHalf.stream().mapToInt(Record::getSize).sum();
         int secondPageSize = 4 + secondHalf.stream().mapToInt(Record::getSize).sum();
 
-        // Create new page
-        Page newPage = new Page(page.getPageId() + 1, page.getTableId(), true);
+        int newPageId = catalog.getTable(page.getTableId()).getPageCount();
+        Page newPage = new Page(newPageId, page.getTableId(), true);
         newPage.setRecords(new ArrayList<>(secondHalf));
         newPage.setRecordCount(secondHalf.size());
         newPage.setSize(secondPageSize);
 
-        // Update original page
         page.setRecords(new ArrayList<>(firstHalf));
         page.setRecordCount(firstHalf.size());
         page.setSize(firstPageSize);
 
-        // Update catalog and buffer
         catalog.getTable(page.getTableId()).addPage(newPage);
         buffer.updatePage(page);
 
-        // Handle potential recursive splits if overfull
-        if (page.isOverfull())
+        if (page.isOverfull()) {
             splitPage(page);
-        else
+        } else {
             buffer.updatePage(page);
+        }
 
-        if (newPage.isOverfull())
+        if (newPage.isOverfull()) {
             splitPage(newPage);
-        else
+        } else {
             buffer.addPage(newPage.getPageId(), newPage);
+            writePage(newPage); // Make sure it's saved
+        }
 
         return firstRecInNewPage;
     }
+
+    
 
     // Simply appends page to end of file
     public void appendPageToFile(Page page) {
@@ -257,30 +271,38 @@ public class StorageManager {
     
     // Inserts a record into the correct page
     private void insertRecord(Table table, Record record, int tableNumber, boolean indexFound, int pageIndex, int recIndex) {
-        // System.out.println("ADDING RECORD");
         Page targetPage;
-    
+
         if (table.getPageCount() == 0) {
             targetPage = new Page(0, tableNumber, true);
             targetPage.addRecord(record);
             table.addPage(targetPage);
+            buffer.addPage(0, targetPage); // Explicitly add to buffer
+            System.out.println("DEBUG: First page created and record added.");
         } else {
             pageIndex = indexFound ? pageIndex : table.getPageCount() - 1;
             targetPage = getPage(tableNumber, pageIndex);
-    
+
             if (indexFound) {
+                System.out.println("DEBUG: Shifting and adding at page " + pageIndex + ", index " + recIndex);
                 targetPage.shiftRecordsAndAdd(record, recIndex);
             } else {
+                System.out.println("DEBUG: Appending to end of page " + pageIndex);
                 targetPage.addRecord(record);
             }
         }
-    
+
+        // Evict stale page to avoid duplicates or corrupt state
+        buffer.evictPage(targetPage.getPageId(), targetPage.getTableId());
+
         if (targetPage.isOverfull()) {
+            System.out.println("DEBUG: Page " + targetPage.getPageId() + " is overfull. Splitting...");
             splitPage(targetPage);
         } else {
-            buffer.updatePage(targetPage);
+            buffer.addPage(targetPage.getPageId(), targetPage); // Re-add only once, cleanly
         }
     }
+
     
     // Compares attribute values
     private int compare(Attribute attr, Record record, Record existingRecord, int index) {

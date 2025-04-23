@@ -124,6 +124,17 @@ public class PageBuffer {
         pages.remove(new PageKey(targetPage.getTableId(), oldPageNumber));
     }
 
+    // Removes a page from the buffer and writes it to disk if needed
+    public void evictPage(int pageID, int tableID) {
+        PageKey key = new PageKey(tableID, pageID);
+        Page page = pages.get(key);
+        if (page != null) {
+            writePage(page); // Write before removing
+            pages.remove(key);
+            System.out.println("Evicted page " + pageID + " for table " + tableID);
+        }
+    }
+
     public void purgeTablePages(int tableID) {
         pages.entrySet().removeIf(entry -> entry.getKey().tableID() == tableID);
     

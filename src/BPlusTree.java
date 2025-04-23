@@ -1,3 +1,6 @@
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.nio.ByteBuffer;
 import java.util.LinkedList;
@@ -96,34 +99,42 @@ public class BPlusTree {
      */
     public static BPlusTree fromFile(int tableID, Attribute attr) {
         String fileName = Main.getDBLocation() + "/BPIndex/" + tableID + ".bin";
-        byte[] data = new byte[Main.getPageSize()];
-    
-        try (RandomAccessFile fileIn = new RandomAccessFile(fileName, "r")) {
-            fileIn.read(data);
-        } catch (Exception e) {
+
+        File file = new File(fileName);
+        long fileLength = file.length();
+
+        if (fileLength == 0) {
+            System.err.println("Empty BPlusTree file: " + fileName);
+            return null;
+        }
+
+        byte[] data = new byte[(int) fileLength];
+        try (FileInputStream fis = new FileInputStream(file)) {
+            fis.read(data);
+        } catch (IOException e) {
             System.err.println("Error reading B+ Tree from file: " + e.getMessage());
             return null;
         }
-    
+
         ByteBuffer buffer = ByteBuffer.wrap(data);
         int numKeys = buffer.getInt();
-    
+
         String attrType = attr.getType();
         int order = (int) Math.floor(Main.getPageSize() / (attr.getSize() + 2 * Integer.BYTES)) - 1;
-    
+
         BPlusNode root = new BPlusNode(order, true, tableID, attr);
         LinkedList<Object> keys = new LinkedList<>();
         LinkedList<BPlusNode.Pair<Integer, Integer>> pointers = new LinkedList<>();
-    
+
         // First pointer
         int pageNumber = buffer.getInt();
         int index = buffer.getInt();
         pointers.add(new BPlusNode.Pair<>(pageNumber, index));
-    
+
         // Read keys and their corresponding pointers
         for (int i = 0; i < numKeys; i++) {
             Object key;
-    
+
             switch (attrType.toLowerCase()) {
                 case "varchar" -> {
                     int strLen = buffer.getInt();
@@ -145,22 +156,23 @@ public class BPlusTree {
                     return null;
                 }
             }
-    
+
             keys.add(key);
-    
+
             pageNumber = buffer.getInt();
             index = buffer.getInt();
             pointers.add(new BPlusNode.Pair<>(pageNumber, index));
         }
-    
+
         // Set root's reconstructed data
         root.setKeys(keys);
         root.setPointers(pointers);
-    
+
         BPlusTree tree = new BPlusTree(attr, tableID);
         tree.root = root;
         return tree;
-    }    
+    }
+
 
     /**
      * Displays the structure of the tree (debugging/visualization).
@@ -177,8 +189,11 @@ public class BPlusTree {
      */
     public int compare(Object insertValue, Object existingValue) {
         if (attr.getType().equalsIgnoreCase("integer")) {
-            return (int) insertValue - (int) existingValue;
+            return ((Integer) insertValue).compareTo((Integer) existingValue);
+        } else if (attr.getType().equalsIgnoreCase("double")) {
+            return ((Double) insertValue).compareTo((Double) existingValue);
+        } else {
+            return ((String) insertValue).compareTo((String) existingValue);
         }
-        return 0;
-    }
+    }    
 }

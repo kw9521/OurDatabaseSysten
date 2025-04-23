@@ -17,6 +17,7 @@ public class BPlusNode {
     private LinkedList<BPlusNode> children;
     private LinkedList<Pair<Integer, Integer>> pointers;
     private BPlusNode parent;
+    private BPlusNode nextLeaf;
 
     public BPlusNode(int order, boolean isRoot, int tableID, Attribute attr) {
         this.order = order;
@@ -95,15 +96,11 @@ public class BPlusNode {
                                 int newPageID = -1;
                                 int newIndexx = -1;
 
-                                System.out.println("UNI");
-
                                 outer:
                                 for (Page p : allPages) {
                                     List<Record> recs = p.getRecords();
                                     for (int ix = 0; ix < recs.size(); ix++) {
                                         if (recs.get(ix).getData().equals(firstRec.getData())) {
-                                            System.out.println(firstRec.getData());
-                                            System.out.println("Hi ChatGPT");
                                             newPageID = p.getPageId();
                                             newIndexx = ix;
                                             break outer;
@@ -116,17 +113,9 @@ public class BPlusNode {
                                     return false;
                                 }
 
-                                // 👇 Insert the split key into the tree, with a pointer to the new page
+                                // Insert the split key into the tree, with a pointer to the new page
                                 keys.add(i + 1, firstVal);
                                 pointers.add(i + 2, new Pair<>(newPageID, newIndexx)); // i+2 because we already inserted one pointer after i
-    
-                                System.out.println("Pointer list size = " + pointers.size());
-                                System.out.println("Key list size = " + keys.size());
-                                for (int pi = 0; pi < pointers.size(); pi++) {
-                                    Pair<Integer, Integer> ptr = pointers.get(pi);
-                                    System.out.println("  Pointer[" + pi + "] = (" +
-                                        (ptr == null ? "null" : ptr.getPageNumber() + ", " + ptr.getIndex()) + ")");
-                                }
 
                                 BPlusNode neighbor = getLeftSiblingInclusive();
                                 while (neighbor != null) {
@@ -210,12 +199,16 @@ public class BPlusNode {
             }
     
             // Handle node splitting
+            System.out.println("ORDER: " + order);
             if (keys.size() == order) {
                 int splitIndex = (int) Math.ceil(order / 2.0);
                 Object splitKey = keys.get(splitIndex);
     
-                BPlusNode leftNode = new BPlusNode(order, false, tableID, attr);
-                BPlusNode rightNode = new BPlusNode(order, false, tableID, attr);
+                BPlusNode leftNode = new BPlusNode(order, this.isLeaf, tableID, attr);
+                BPlusNode rightNode = new BPlusNode(order, this.isLeaf, tableID, attr);  
+                
+                System.out.println("splitting");
+
                 leftNode.parent = parent;
                 rightNode.parent = parent;
     
@@ -230,6 +223,17 @@ public class BPlusNode {
                 rightNode.keys = rightKeys;
                 rightNode.pointers = rightPointers;
     
+                // Link leaf nodes if it's a leaf split
+                if (isLeaf) {
+                    leftNode.isLeaf = true;
+                    rightNode.isLeaf = true;
+                    
+                    // Set leaf linkage
+                    System.out.println("Setting next leaf...");
+                    leftNode.setNextLeaf(rightNode);
+                    rightNode.setNextLeaf(this.getNextLeaf()); // preserve chain
+                }
+
                 if (isRoot) {
                     keys = new LinkedList<>();
                     insert(record, splitKey, pointer, true);
@@ -637,6 +641,14 @@ public class BPlusNode {
         }
     }
 
+    public void setNextLeaf(BPlusNode nextLeaf) {
+        this.nextLeaf = nextLeaf;
+    }
+    
+    public BPlusNode getNextLeaf() {
+        return this.nextLeaf;
+    }
+
     public void setKeys(LinkedList<Object> keys) {
         this.keys = keys;
     }
@@ -646,8 +658,9 @@ public class BPlusNode {
     }
     
     public void writeToFile() {
-        ByteBuffer buffer = ByteBuffer.allocate(Main.getPageSize());
-
+        int estimatedSize = 4 + pointers.size() * 8 + keys.size() * 12;
+        ByteBuffer buffer = ByteBuffer.allocate(Math.max(Main.getPageSize(), estimatedSize));
+        
         // Defensive check
         if (pointers.size() != keys.size() + 1) {
             throw new IllegalStateException("Pointer-key mismatch in node: expected " +
@@ -689,7 +702,7 @@ public class BPlusNode {
             }            
 
             Pair<Integer, Integer> nextPointer = pointers.get(i + 1); // Safe now
-            buffer.putInt(nextPointer.getPageNumber());
+            buffer.putInt(nextPointer.getPageNumber()); // Line 692
             buffer.putInt(nextPointer.getIndex());
         }
 
@@ -704,6 +717,10 @@ public class BPlusNode {
         // Write to file
         try (RandomAccessFile fileOut = new RandomAccessFile(file, "rw")) {
             fileOut.seek(pageID * Main.getPageSize());
+
+            System.out.println("Total buffer capacity: " + buffer.capacity());
+            System.out.println("Buffer position before write: " + buffer.position());
+
             fileOut.write(buffer.array());
         } catch (IOException e) {
             e.printStackTrace();

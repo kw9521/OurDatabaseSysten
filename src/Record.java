@@ -157,7 +157,6 @@ public class Record {
     }
 
     public Object getAttributeValue(String attributeName, Attribute[] attributes) {
-        System.out.println("Updated GAV func");
         String[] parts = attributeName.split("\\.");
         String AttributeName = parts.length > 1 ? parts[1] : parts[0];
     
