@@ -42,16 +42,45 @@ public class Page {
     }
 
     public void shiftRecordsAndAdd(Record rec, int startingIndex) {
-        this.records.add(rec);
-        for (int i = this.getRecordCount(); i > startingIndex; i--) {
-            this.records.set(i, records.get(i - 1));
+        // Add a dummy entry to expand the list
+        this.records.add(null);  // list size now recordCount + 1
+    
+        // Shift records one position to the right starting from the end
+        for (int i = this.records.size() - 1; i > startingIndex; i--) {
+            this.records.set(i, this.records.get(i - 1));
         }
+    
+        // Place the new record in the correct position
         this.records.set(startingIndex, rec);
+    
         this.recordCount++;
         this.size += rec.getSize();
         this.updated = true;
+    
+        // DEBUG print to validate structure
+        System.out.println("After insert, record count = " + recordCount + ", records.size() = " + records.size());
+    
+        int attrCount = Main.getCatalog().getTable(tableId).getAttributes().length;
+    
+        // Check the inserted record directly
+        System.out.println("Inserted record data: " + rec.getData());
+    
+        // Print all records for inspection
+        System.out.println("All record data:");
+        for (int i = 0; i < records.size(); i++) {
+            Record r = records.get(i);
+            if (r == null) {
+                System.out.println("NULL at index " + i);
+            } else {
+                List<Object> data = r.getData();
+                System.out.println("  [" + i + "] " + data);
+                if (data.size() < attrCount) {
+                    System.out.println("  INCOMPLETE RECORD at index " + i + " (expected " + attrCount + " attrs)");
+                }
+            }
+        }
     }
-
+    
     public List<Record> getRecords() {
         return records;
     }

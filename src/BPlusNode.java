@@ -4,6 +4,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.util.LinkedList;
+import java.util.List;
 
 public class BPlusNode {
     private boolean isLeaf;
@@ -75,8 +76,58 @@ public class BPlusNode {
     
                             if (page.isOverfull()) {
                                 Record firstRec = Main.getStorageManager().splitPage(page);
-                                Object firstVal = firstRec.getAttributeValue(attr.getName(), Main.getCatalog().getTable(tableID).getAttributes());
+                            
+                                //  Add debug BEFORE getAttributeValue()
+                                System.out.println(" Splitting (mid-insert) - attempting to extract attribute: " + attr.getName());
+                                System.out.println(" firstRec: " + firstRec.getData());
+                            
+                                Attribute[] attrs = Main.getCatalog().getTable(tableID).getAttributes();
+                                System.out.println(" Attribute count: " + attrs.length);
+                                for (int z = 0; z < attrs.length; z++) {
+                                    System.out.println("  [" + z + "] " + attrs[z].getName());
+                                }
+                            
+                                System.out.println("firstRec.getData().size() = " + firstRec.getData().size());
+                                Object firstVal = firstRec.getAttributeValue(attr.getName(), attrs);
+                            
+                                // Locate the page and index of firstRec
+                                List<Page> allPages = Main.getStorageManager().getPages(tableID);
+                                int newPageID = -1;
+                                int newIndexx = -1;
+
+                                System.out.println("UNI");
+
+                                outer:
+                                for (Page p : allPages) {
+                                    List<Record> recs = p.getRecords();
+                                    for (int ix = 0; ix < recs.size(); ix++) {
+                                        if (recs.get(ix).getData().equals(firstRec.getData())) {
+                                            System.out.println(firstRec.getData());
+                                            System.out.println("Hi ChatGPT");
+                                            newPageID = p.getPageId();
+                                            newIndexx = ix;
+                                            break outer;
+                                        }
+                                    }
+                                }
+
+                                if (newPageID == -1) {
+                                    System.err.println("Error: could not locate new page for split record!");
+                                    return false;
+                                }
+
+                                // 👇 Insert the split key into the tree, with a pointer to the new page
+                                keys.add(i + 1, firstVal);
+                                pointers.add(i + 2, new Pair<>(newPageID, newIndexx)); // i+2 because we already inserted one pointer after i
     
+                                System.out.println("Pointer list size = " + pointers.size());
+                                System.out.println("Key list size = " + keys.size());
+                                for (int pi = 0; pi < pointers.size(); pi++) {
+                                    Pair<Integer, Integer> ptr = pointers.get(pi);
+                                    System.out.println("  Pointer[" + pi + "] = (" +
+                                        (ptr == null ? "null" : ptr.getPageNumber() + ", " + ptr.getIndex()) + ")");
+                                }
+
                                 BPlusNode neighbor = getLeftSiblingInclusive();
                                 while (neighbor != null) {
                                     if (neighbor.pointers.get(0).getPageNumber() == nextPointer.getPageNumber()) {
@@ -124,8 +175,20 @@ public class BPlusNode {
     
                     if (page.isOverfull()) {
                         Record firstRec = Main.getStorageManager().splitPage(page);
-                        Object firstVal = firstRec.getAttributeValue(attr.getName(), Main.getCatalog().getTable(tableID).getAttributes());
-    
+                    
+                        //  Add debug BEFORE getAttributeValue()
+                        System.out.println(" Splitting (end-insert) — attempting to extract attribute: " + attr.getName());
+                        System.out.println(" firstRec: " + firstRec.getData());
+                    
+                        Attribute[] attrs = Main.getCatalog().getTable(tableID).getAttributes();
+                        System.out.println(" Attribute count: " + attrs.length);
+                        for (int i = 0; i < attrs.length; i++) {
+                            System.out.println("  [" + i + "] " + attrs[i].getName());
+                        }
+                    
+                        System.out.println("firstRec.getData().size() = " + firstRec.getData().size());
+                        Object firstVal = firstRec.getAttributeValue(attr.getName(), attrs);
+                        
                         BPlusNode neighbor = getLeftSiblingInclusive();
                         while (neighbor != null) {
                             if (neighbor.pointers.get(0).getPageNumber() == lastPointer.getPageNumber()) {
@@ -620,6 +683,10 @@ public class BPlusNode {
                 case "boolean" -> buffer.put((byte) ((boolean) key ? 1 : 0));
                 default -> throw new IllegalArgumentException("Unsupported attribute type: " + attr.getType());
             }
+
+            if (i + 1 >= pointers.size()) {
+                System.err.println("Tried to access pointers[" + (i + 1) + "] but size is " + pointers.size());
+            }            
 
             Pair<Integer, Integer> nextPointer = pointers.get(i + 1); // Safe now
             buffer.putInt(nextPointer.getPageNumber());

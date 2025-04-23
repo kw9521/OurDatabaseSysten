@@ -157,20 +157,22 @@ public class Record {
     }
 
     public Object getAttributeValue(String attributeName, Attribute[] attributes) {
+        System.out.println("Updated GAV func");
         String[] parts = attributeName.split("\\.");
         String AttributeName = parts.length > 1 ? parts[1] : parts[0];
     
-        for (Attribute attr : attributes) {
-            if (attr.getName().equals(AttributeName)) {
-                int index = Arrays.asList(AttributeName).indexOf(attr);
-                if (index < 0 || index >= data.size()) {
+        for (int i = 0; i < attributes.length; i++) {
+            if (attributes[i].getName().equals(AttributeName)) {
+                if (i < 0 || i >= data.size()) {
                     System.err.println("Error: Attribute index out of bounds. Attribute: " + AttributeName);
-                    return null; 
+                    return null;
                 }
-                return data.get(index);
+                return data.get(i);
             }
         }
+    
         System.err.println("Error: Attribute " + AttributeName + " not found in record.");
-        return null; 
+        return null;
     }
+    
 }
