@@ -353,6 +353,91 @@ public class StorageManager {
                 throw new IllegalArgumentException("Unsupported attribute type: " + attr.getType());
         }
     }
+
+
+    // insert record using index
+    public boolean insertUsingIndex(Record record, int tableID, BPlusTree tree) {
+        Table table = catalog.getTable(tableID);
+        Attribute[] attrs = table.getAttributes();
+
+        // get primary key + value
+        int pkIndex = -1;
+        Object pkValue = null;
+        for (int i = 0; i < attrs.length; i++) {
+            if (attrs[i].isPrimaryKey()) {
+                pkIndex = i;
+                pkValue = record.getData().get(i);
+                break;
+            }
+        }
+        if (pkIndex == -1 || pkValue == null) {
+            System.err.println("Primary key is missing or null.");
+            return false;
+        }
+
+        // search index
+        BPlusNode targetLeaf = tree.search(pkValue);
+        if (targetLeaf != null && targetLeaf.getKeys().contains(pkValue)) {
+            System.err.println("Duplicate primary key: " + pkValue);
+            return false;
+        }
+
+        // determine where to insert
+        int pageNum = 0;
+        int insertIndex = -1;
+
+        if (targetLeaf != null) {
+            List<Object> keys = targetLeaf.getKeys();
+            List<BPlusNode.Pair<Integer, Integer>> pointers = targetLeaf.getPointers();
+
+            for (int i = 0; i < keys.size(); i++) {
+                if (tree.compare(pkValue, keys.get(i)) < 0) {
+                    pageNum = pointers.get(i).getPageNumber();
+                    insertIndex = pointers.get(i).getIndex();
+                    break;
+                }
+            }
+
+            // If pkValue is largest, use last pointer
+            if (insertIndex == -1 && !pointers.isEmpty()) {
+                BPlusNode.Pair<Integer, Integer> lastPtr = pointers.getLast();
+                pageNum = lastPtr.getPageNumber();
+                insertIndex = lastPtr.getIndex();
+            }
+        }
+
+        // Use existing page or create new page
+        Page targetPage = getPage(tableID, pageNum);
+        if (targetPage == null) {
+            targetPage = new Page(0, tableID, true);
+            table.addPage(targetPage);
+            pageNum = targetPage.getPageId();
+            insertIndex = 0;
+            buffer.addPage(pageNum, targetPage); // Add new page to buffer
+        }
+
+        // Insert the record
+        if (insertIndex >= 0 && insertIndex < targetPage.getRecordCount()) {
+            targetPage.shiftRecordsAndAdd(record, insertIndex);
+        } else {
+            targetPage.addRecord(record);
+            insertIndex = targetPage.getRecordCount() - 1;
+        }
+
+        // Update buffer after modification
+        buffer.updatePage(targetPage);
+
+        if (targetPage.isOverfull()) {
+            SplitResult split = splitPage(targetPage);
+            if (split != null && split.firstRecord == record) {
+                pageNum = split.newPageId;
+                insertIndex = split.firstIndex;
+            }
+        }
+
+        // Insert new key and pointer into B+Tree
+        return tree.insert(record, pkValue, 0); // actual (page, index) pair is stored inside node
+    }
     
 
 }
