@@ -76,61 +76,37 @@ public class BPlusNode {
                             }
     
                             if (page.isOverfull()) {
-                                Record firstRec = Main.getStorageManager().splitPage(page);
-                            
-                                //  Add debug BEFORE getAttributeValue()
-                                System.out.println(" Splitting (mid-insert) - attempting to extract attribute: " + attr.getName());
-                                System.out.println(" firstRec: " + firstRec.getData());
-                            
+                                SplitResult splitResult = Main.getStorageManager().splitPage(page);
                                 Attribute[] attrs = Main.getCatalog().getTable(tableID).getAttributes();
-                                System.out.println(" Attribute count: " + attrs.length);
-                                for (int z = 0; z < attrs.length; z++) {
-                                    System.out.println("  [" + z + "] " + attrs[z].getName());
-                                }
+                                Object firstVal = splitResult.firstRecord.getAttributeValue(attr.getName(), attrs);
+                                keys.add(i + 1, firstVal);
+                                pointers.add(i + 2, new Pair<>(splitResult.newPageId, splitResult.firstIndex));
                             
-                                System.out.println("firstRec.getData().size() = " + firstRec.getData().size());
-                                Object firstVal = firstRec.getAttributeValue(attr.getName(), attrs);
-                            
-                                // Locate the page and index of firstRec
-                                List<Page> allPages = Main.getStorageManager().getPages(tableID);
-                                int newPageID = -1;
-                                int newIndexx = -1;
-
-                                outer:
-                                for (Page p : allPages) {
-                                    List<Record> recs = p.getRecords();
-                                    for (int ix = 0; ix < recs.size(); ix++) {
-                                        if (recs.get(ix).getData().equals(firstRec.getData())) {
-                                            newPageID = p.getPageId();
-                                            newIndexx = ix;
-                                            break outer;
+                                // Update pointers for records moved to the new page
+                                for (int j = i + 2; j < pointers.size(); j++) {
+                                    Pair<Integer, Integer> ptr = pointers.get(j);
+                                    if (ptr.getPageNumber() == nextPointer.getPageNumber()) {
+                                        // Adjust index for records moved to new page
+                                        int newIdx = ptr.getIndex() - page.getRecordCount();
+                                        if (newIdx >= 0) {
+                                            pointers.set(j, new Pair<>(splitResult.newPageId, newIdx));
                                         }
                                     }
                                 }
-
-                                if (newPageID == -1) {
-                                    System.err.println("Error: could not locate new page for split record!");
-                                    return false;
-                                }
-
-                                // Insert the split key into the tree, with a pointer to the new page
-                                keys.add(i + 1, firstVal);
-                                pointers.add(i + 2, new Pair<>(newPageID, newIndexx)); // i+2 because we already inserted one pointer after i
-
+                            
+                                // Propagate updates to neighbors
                                 BPlusNode neighbor = getLeftSiblingInclusive();
                                 while (neighbor != null) {
-                                    if (neighbor.pointers.get(0).getPageNumber() == nextPointer.getPageNumber()) {
-                                        neighbor = neighbor.getLeftSiblingInclusive();
-                                    } else {
-                                        if (doesNodeSharePage(nextPointer.getPageNumber())) break;
-                                        neighbor = neighbor.getRightSiblingInclusive();
-                                        break;
+                                    for (int j = 0; j < neighbor.pointers.size(); j++) {
+                                        Pair<Integer, Integer> ptr = neighbor.pointers.get(j);
+                                        if (ptr.getPageNumber() == nextPointer.getPageNumber() && 
+                                            (j == 0 || compare(neighbor.keys.get(j - 1), firstVal) >= 0)) {
+                                            int newIdx = ptr.getIndex() - page.getRecordCount();
+                                            if (newIdx >= 0) {
+                                                neighbor.pointers.set(j, new Pair<>(splitResult.newPageId, newIdx));
+                                            }
+                                        }
                                     }
-                                }
-    
-                                int newIndex = 0;
-                                while (neighbor != null) {
-                                    newIndex += neighbor.incrementPointers(nextPointer.getPageNumber(), firstVal, newIndex);
                                     neighbor = neighbor.getRightSiblingInclusive();
                                 }
                             }
@@ -151,49 +127,68 @@ public class BPlusNode {
                     Page newPage = new Page(0, tableID, true);
                     newPage.addRecord(record);
                     Main.getCatalog().getTable(tableID).addPage(newPage);
-    
-                    // ✅ First insert: add 2 pointers
+            
+                    // First insert: add pointers for the record and next position
                     pointers.add(new Pair<>(0, 0));
                     pointers.add(new Pair<>(0, 1));
                 } else {
                     Pair<Integer, Integer> lastPointer = pointers.getLast();
                     Page page = Main.getStorageManager().getPage(tableID, lastPointer.getPageNumber());
                     page.addRecord(record);
-    
-                    pointers.add(new Pair<>(lastPointer.pageNumber, lastPointer.index + 1));
-    
+            
+                    // Add new pointer for the inserted record
+                    pointers.add(new Pair<>(lastPointer.getPageNumber(), lastPointer.getIndex() + 1));
+            
                     if (page.isOverfull()) {
-                        Record firstRec = Main.getStorageManager().splitPage(page);
-                    
-                        //  Add debug BEFORE getAttributeValue()
-                        System.out.println(" Splitting (end-insert) — attempting to extract attribute: " + attr.getName());
-                        System.out.println(" firstRec: " + firstRec.getData());
-                    
+                        SplitResult splitResult = Main.getStorageManager().splitPage(page);
+            
+                        // Debug logging
+                        System.out.println(" Splitting (end-insert) — pageId=" + page.getPageId() +
+                                          ", newPageId=" + splitResult.newPageId +
+                                          ", firstRec=" + splitResult.firstRecord.getData());
+            
                         Attribute[] attrs = Main.getCatalog().getTable(tableID).getAttributes();
                         System.out.println(" Attribute count: " + attrs.length);
                         for (int i = 0; i < attrs.length; i++) {
                             System.out.println("  [" + i + "] " + attrs[i].getName());
                         }
-                    
-                        System.out.println("firstRec.getData().size() = " + firstRec.getData().size());
-                        Object firstVal = firstRec.getAttributeValue(attr.getName(), attrs);
-                        
-                        BPlusNode neighbor = getLeftSiblingInclusive();
-                        while (neighbor != null) {
-                            if (neighbor.pointers.get(0).getPageNumber() == lastPointer.getPageNumber()) {
-                                neighbor = neighbor.getLeftSiblingInclusive();
-                            } else {
-                                if (doesNodeSharePage(lastPointer.getPageNumber())) break;
-                                neighbor = neighbor.getRightSiblingInclusive();
-                                break;
+                        System.out.println("firstRec.getData().size() = " + splitResult.firstRecord.getData().size());
+            
+                        Object firstVal = splitResult.firstRecord.getAttributeValue(attr.getName(), attrs);
+            
+                        // Add key and pointer for the new page
+                        keys.add(firstVal);
+                        pointers.add(new Pair<>(splitResult.newPageId, splitResult.firstIndex));
+            
+                        // Update existing pointers for records moved to the new page
+                        int originalPageRecords = page.getRecordCount();
+                        for (int j = 0; j < pointers.size(); j++) {
+                            Pair<Integer, Integer> ptr = pointers.get(j);
+                            if (ptr.getPageNumber() == lastPointer.getPageNumber() && ptr.getIndex() >= originalPageRecords) {
+                                int newIdx = ptr.getIndex() - originalPageRecords;
+                                pointers.set(j, new Pair<>(splitResult.newPageId, newIdx));
                             }
                         }
-    
-                        int newIndex = 0;
-                        while (neighbor != null) {
-                            newIndex += neighbor.incrementPointers(lastPointer.getPageNumber(), firstVal, newIndex);
+            
+                        // Update pointers in neighboring nodes
+                        BPlusNode neighbor = getLeftSiblingInclusive();
+                        while (neighbor != null && neighbor != this) {
+                            boolean updated = false;
+                            for (int j = 0; j < neighbor.pointers.size(); j++) {
+                                Pair<Integer, Integer> ptr = neighbor.pointers.get(j);
+                                if (ptr.getPageNumber() == lastPointer.getPageNumber() && 
+                                    ptr.getIndex() >= originalPageRecords) {
+                                    int newIdx = ptr.getIndex() - originalPageRecords;
+                                    neighbor.pointers.set(j, new Pair<>(splitResult.newPageId, newIdx));
+                                    updated = true;
+                                }
+                            }
+                            if (!updated) break; // Stop if no pointers were updated
                             neighbor = neighbor.getRightSiblingInclusive();
                         }
+            
+                        // Debug pointers
+                        System.out.println("After split: keys=" + keys + ", pointers=" + pointers);
                     }
                 }
             }
@@ -289,22 +284,13 @@ public class BPlusNode {
     // update its page number and index.
     public int incrementPointers(int pageNum, Object searchKey, int newIndex) {
         int offset = 0;
-
         for (int i = 0; i < pointers.size(); i++) {
             Pair<Integer, Integer> pointer = pointers.get(i);
-
-            if (pointer.getPageNumber() > pageNum) {
-                // Shift page numbers forward to accommodate new page
-                pointers.set(i, new Pair<>(pointer.getPageNumber() + 1, pointer.getIndex()));
-            }
-
-            if (pointer.getPageNumber() == pageNum && compare(keys.get(i), searchKey) > 0) {
-                // If the key is after the split point, move it to new page
-                pointers.set(i, new Pair<>(pointer.getPageNumber() + 1, newIndex + offset));
+            if (pointer.getPageNumber() == pageNum && (i == 0 || compare(keys.get(i - 1), searchKey) > 0)) {
+                pointers.set(i, new Pair<>(pageNum + 1, newIndex + offset));
                 offset++;
             }
         }
-
         return offset;
     }
 

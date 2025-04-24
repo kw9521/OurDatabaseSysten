@@ -99,52 +99,82 @@ public class StorageManager {
     }    
 
     // Splits a page into two when it exceeds capacity
-    public Record splitPage(Page page) {
-        List<Record> allRecords = new ArrayList<>(page.getRecords());
-        Attribute[] attrs = catalog.getTable(page.getTableId()).getAttributes();
-        int pkIndex = findPrimaryKeyIndex(attrs);
-
-        // Ensure correct ordering before splitting
-        allRecords.sort(Comparator.comparing(r -> (Comparable) r.getData().get(pkIndex)));
-
+    public SplitResult splitPage(Page page) {
+        List<Record> allRecords = page.getRecords();
+        Table table = catalog.getTable(page.getTableId());
+        Attribute[] attrs = table.getAttributes();
+    
+        // Find primary key index and attribute
+        int pkIndex = -1;
+        Attribute pkAttr = null;
+        for (int i = 0; i < attrs.length; i++) {
+            if (attrs[i].getPrimaryKey()) {
+                pkIndex = i;
+                pkAttr = attrs[i];
+                break;
+            }
+        }
+        if (pkIndex == -1 || pkAttr == null) {
+            throw new IllegalStateException("No primary key found for table " + table.getName());
+        }
+    
+        // Use final local variables for lambda
+        final int finalPkIndex = pkIndex;
+        final Attribute finalPkAttr = pkAttr;
+    
+        // Sort records by primary key
+        allRecords.sort((r1, r2) -> {
+            Object val1 = r1.getData().get(finalPkIndex);
+            Object val2 = r2.getData().get(finalPkIndex);
+            switch (finalPkAttr.getType().toLowerCase()) {
+                case "integer":
+                    return Integer.compare((Integer) val1, (Integer) val2);
+                case "double":
+                    return Double.compare((Double) val1, (Double) val2);
+                case "varchar":
+                case "char":
+                    return ((String) val1).compareTo((String) val2);
+                case "boolean":
+                    return Boolean.compare((Boolean) val1, (Boolean) val2);
+                default:
+                    throw new UnsupportedOperationException("Unsupported primary key type: " + finalPkAttr.getType());
+            }
+        });
+    
         int totalRecords = allRecords.size();
         int midIndex = totalRecords / 2;
-
+    
         List<Record> firstHalf = new ArrayList<>(allRecords.subList(0, midIndex));
         List<Record> secondHalf = new ArrayList<>(allRecords.subList(midIndex, totalRecords));
-
+    
         Record firstRecInNewPage = secondHalf.get(0);
-
+    
         int firstPageSize = 4 + firstHalf.stream().mapToInt(Record::getSize).sum();
         int secondPageSize = 4 + secondHalf.stream().mapToInt(Record::getSize).sum();
-
-        int newPageId = catalog.getTable(page.getTableId()).getPageCount();
+    
+        // Use getPageCount as the new page ID
+        int newPageId = table.getPageCount();
         Page newPage = new Page(newPageId, page.getTableId(), true);
         newPage.setRecords(new ArrayList<>(secondHalf));
         newPage.setRecordCount(secondHalf.size());
         newPage.setSize(secondPageSize);
-
+    
         page.setRecords(new ArrayList<>(firstHalf));
         page.setRecordCount(firstHalf.size());
         page.setSize(firstPageSize);
-
-        catalog.getTable(page.getTableId()).addPage(newPage);
+    
+        // Add new page to catalog (increments pageCount)
+        table.addPage(newPage);
         buffer.updatePage(page);
-
-        if (page.isOverfull()) {
-            splitPage(page);
-        } else {
-            buffer.updatePage(page);
-        }
-
-        if (newPage.isOverfull()) {
-            splitPage(newPage);
-        } else {
-            buffer.addPage(newPage.getPageId(), newPage);
-            writePage(newPage); // Make sure it's saved
-        }
-
-        return firstRecInNewPage;
+        buffer.addPage(newPage.getPageId(), newPage);
+        writePage(newPage);
+    
+        // Debug logging
+        System.out.println("splitPage: pageId=" + page.getPageId() + ", records=" + firstHalf.size() +
+                          ", newPageId=" + newPageId + ", newRecords=" + secondHalf.size() +
+                          ", firstRecInNewPage=" + firstRecInNewPage.getData());
+    
+        return new SplitResult(firstRecInNewPage, newPageId, 0);
     }
 
     

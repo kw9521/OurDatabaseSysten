@@ -42,21 +42,35 @@ public class Page {
     }
 
     public void shiftRecordsAndAdd(Record rec, int startingIndex) {
-        // Add a dummy entry to expand the list
-        this.records.add(null);  // list size now recordCount + 1
-    
-        // Shift records one position to the right starting from the end
-        for (int i = this.records.size() - 1; i > startingIndex; i--) {
-            this.records.set(i, this.records.get(i - 1));
+        if (startingIndex < 0 || startingIndex > recordCount) {
+            throw new IllegalArgumentException("Invalid startingIndex: " + startingIndex +
+                                              ", recordCount=" + recordCount +
+                                              ", records.size=" + records.size());
         }
     
-        // Place the new record in the correct position
-        this.records.set(startingIndex, rec);
+        // Ensure records list matches recordCount
+        if (records.size() != recordCount) {
+            System.err.println("Warning: records.size (" + records.size() +
+                              ") does not match recordCount (" + recordCount + ")");
+            while (records.size() > recordCount) {
+                records.remove(records.size() - 1);
+            }
+            while (records.size() < recordCount) {
+                records.add(null);
+            }
+        }
     
-        this.recordCount++;
-        this.size += rec.getSize();
-        this.updated = true;
-
+        // Insert record at startingIndex, shifting others right
+        records.add(startingIndex, rec);
+        recordCount++;
+        size += rec.getSize();
+        updated = true;
+    
+        // Debug logging
+        System.out.println("shiftRecordsAndAdd: pageId=" + getPageId() +
+                          ", inserted=" + rec.getData() +
+                          ", startingIndex=" + startingIndex +
+                          ", newRecordCount=" + recordCount);
     }
     
     public List<Record> getRecords() {
