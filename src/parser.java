@@ -298,7 +298,7 @@ public class parser {
                 // choose insert operation based on if indexing is on or not
                 if (Main.getIndexing()) {
                     BPlusTree bPlusTree = Main.getBPlusTrees().get(table.getTableID());
-                    boolean success = bPlusTree.insert(newRecord, primaryKeyValue, recordSize);
+                    boolean success = storageManager.insertUsingIndex(newRecord, table.getTableID(), bPlusTree);
                     if (!success) {
                         System.out.println("Insert failed: duplicate primary key");
                         return;
