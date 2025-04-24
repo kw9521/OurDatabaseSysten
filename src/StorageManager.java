@@ -400,7 +400,7 @@ public class StorageManager {
 
             // If pkValue is largest, use last pointer
             if (insertIndex == -1 && !pointers.isEmpty()) {
-                BPlusNode.Pair<Integer, Integer> lastPtr = pointers.getLast();
+                BPlusNode.Pair<Integer, Integer> lastPtr = pointers.get(pointers.size() - 1);
                 pageNum = lastPtr.getPageNumber();
                 insertIndex = lastPtr.getIndex();
             }

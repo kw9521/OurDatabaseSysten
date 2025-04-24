@@ -796,4 +796,8 @@ public class BPlusNode {
         }
     }
     
+    public List<Pair<Integer, Integer>> getPointers() {
+        return pointers;
+    }
+
 }
