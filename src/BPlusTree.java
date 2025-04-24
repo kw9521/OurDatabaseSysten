@@ -196,4 +196,11 @@ public class BPlusTree {
             return ((String) insertValue).compareTo((String) existingValue);
         }
     }    
+
+
+    public BPlusNode.Pair<Integer, Integer> deleteAndReturnPointer(Object key) {
+        if (isEmpty()) return null;
+        return root.deleteAndReturnPointer(key);
+    }
+
 }

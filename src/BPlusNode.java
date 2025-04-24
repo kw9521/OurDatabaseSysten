@@ -768,4 +768,32 @@ public class BPlusNode {
             return index;
         }
     }
+
+    public Pair<Integer, Integer> deleteAndReturnPointer(Object key) {
+        if (isLeaf) {
+            int index = keys.indexOf(key);
+            if (index == -1) return null;
+    
+            // Remove key and pointer
+            keys.remove(index);
+            Pair<Integer, Integer> pointer = pointers.remove(index);
+    
+            // Delete record from page directly
+            Page page = Main.getStorageManager().getPage(tableID, pointer.getPageNumber());
+            Record record = page.getRecords().get(pointer.getIndex());
+            page.deleteRecord(record, pointer.getIndex());
+    
+            if (page.getRecordCount() == 0) {
+                Main.getCatalog().getTable(tableID).dropPage(page.getPageId());
+            } else {
+                Main.getBuffer().updatePage(page);
+            }
+    
+            return pointer;
+        } else {
+            BPlusNode child = search(key);
+            return child != null ? child.deleteAndReturnPointer(key) : null;
+        }
+    }
+    
 }

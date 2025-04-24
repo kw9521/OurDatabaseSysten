@@ -1008,7 +1008,7 @@ public class parser {
         System.out.println("\nSUCCESS\n");
     }
 
-    private static void delete(String normalizedStatement, Catalog catalog, StorageManager storageManager){
+    private static void delete(String normalizedStatement, Catalog catalog, StorageManager storageManager) {
         normalizedStatement = normalizedStatement.trim();
         if (normalizedStatement.endsWith(";")) {
             normalizedStatement = normalizedStatement.substring(0, normalizedStatement.length() - 1);
@@ -1032,7 +1032,6 @@ public class parser {
             whereClause = normalizedStatement.substring(whereIndex + 7).trim();
         }
     
-        // Get the table
         Table table = catalog.getTableByName(tableName);
         if (table == null) {
             System.err.println("Table not found: " + tableName);
@@ -1055,15 +1054,43 @@ public class parser {
             }
         }
     
-        List<Page> pages = storageManager.getPages(table.getTableID());
-    
-        for (Page page : pages) {
-            for (Record record : page.getRecords()) {
-                System.out.println(record.getData());
+        // Use indexing. B+ Tree tracks exact (PageID, IndexInPage) for each key so u can j delete record using the ptr
+        if (Main.getIndexing()) {
+            Attribute pkAttr = null;
+            for (Attribute attr : table.getAttributes()) {
+                if (attr.isPrimaryKey()) {
+                    pkAttr = attr;
+                    break;
+                }
+            }
+
+            if (pkAttr == null) {
+                System.err.println("No primary key found for table: " + tableName);
+            } else if (whereTree != null && whereTree.getValue().equals("=")) {
+                String pkCond = whereTree.getLeftLeaf().getValue();
+                String value = whereTree.getRightLeaf().getValue().replaceAll("^\"|\"$", "");
+
+                // Check if WHERE clause targets the PK 
+                if (pkCond.equals(pkAttr.getName()) || pkCond.equals(tableName + "." + pkAttr.getName())) {
+                    Object key = parseValueBasedOnType(value, pkAttr);
+                    BPlusTree index = Main.getBPlusTrees().get(table.getTableID());
+
+                    if (index != null) {
+                        Record deleted = index.delete(key);
+                        if (deleted != null) {
+                            System.out.println("SUCCESS\n");
+                            return; 
+                        } else {
+                            System.out.println("No matching record found to delete.\n");
+                            return; 
+                        }
+                    }
+                }
             }
         }
     
-        // Collect column-based data to evaluate WHERE
+        // Not using indexing...Reg full scan delete
+        List<Page> pages = storageManager.getPages(table.getTableID());
         List<List<Object>> allRecordData = new ArrayList<>();
         for (Page page : pages) {
             for (Record record : page.getRecords()) {
@@ -1073,9 +1100,8 @@ public class parser {
     
         List<List<Object>> matchingRecords = whereTree != null
             ? evaluateWhereTree(allRecordData, columnNames, whereTree)
-            : allRecordData; // No WHERE clause means all records match
+            : allRecordData; // If no WHERE, delete all
     
-        // Delete matching records
         for (Page page : pages) {
             List<Record> records = page.getRecords();
             int i = 0;
@@ -1087,8 +1113,8 @@ public class parser {
                 if (rowMatches(recordData, matchingRecords)) {
                     page.deleteRecord(record, i);
                     if (page.getRecordCount() == 0) {
-                        catalog.getTableByName(tableName).dropPage(page.getPageId());
-                        break; // No more records in this page
+                        table.dropPage(page.getPageId());
+                        break; // exit this page
                     }
                 } else {
                     i++;
@@ -1096,15 +1122,9 @@ public class parser {
             }
         }
     
-        // Print table after delete
-        for (Page page : pages) {
-            for (Record record : page.getRecords()) {
-                System.out.println(record.getData());
-            }
-        }
-    
         System.out.println("SUCCESS\n");
     }
+    
     
 
     private static void update(String normalizedStatement, Catalog catalog, StorageManager storageManager){
