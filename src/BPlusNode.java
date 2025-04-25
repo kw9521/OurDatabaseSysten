@@ -57,11 +57,14 @@ public class BPlusNode {
     
                         if (isLeaf) {
                             Pair<Integer, Integer> nextPointer = pointers.get(i);
-
-                            Page page = Main.getStorageManager().getPage(tableID, nextPointer.getPageNumber());
-                            page.shiftRecordsAndAdd(record, nextPointer.getIndex());
     
-                            // ✅ Maintain correct pointer size
+                            Page page = Main.getStorageManager().getPage(tableID, nextPointer.getPageNumber());
+                            
+                            // Defensive adjustment for shift
+                            int insertIndex = Math.min(nextPointer.getIndex(), page.getRecordCount());
+                            page.shiftRecordsAndAdd(record, insertIndex);
+    
+                            // Maintain correct pointer size
                             pointers.add(i + 1, new Pair<>(nextPointer.pageNumber, nextPointer.index + 1));
                             pointers.set(i, new Pair<>(nextPointer.pageNumber, nextPointer.index));
     
@@ -69,6 +72,7 @@ public class BPlusNode {
                                 incrementPointerIndexes(nextPointer.getPageNumber(), i + 2);
                             }
     
+                            // Propagate pointer updates to right siblings
                             BPlusNode rightNeighbor = getRightSibling();
                             while (rightNeighbor != null) {
                                 if (!rightNeighbor.incrementPointerIndexes(nextPointer.getPageNumber(), 0)) {
@@ -76,36 +80,35 @@ public class BPlusNode {
                                 } else break;
                             }
     
+    
                             if (page.isOverfull()) {
                                 SplitResult splitResult = Main.getStorageManager().splitPage(page);
+    
                                 Attribute[] attrs = Main.getCatalog().getTable(tableID).getAttributes();
                                 Object firstVal = splitResult.firstRecord.getAttributeValue(attr.getName(), attrs);
+    
                                 keys.add(i + 1, firstVal);
                                 pointers.add(i + 2, new Pair<>(splitResult.newPageId, splitResult.firstIndex));
-                            
-                                // Update pointers for records moved to the new page
-                                for (int j = i + 2; j < pointers.size(); j++) {
+    
+                                int oldPageRecordCount = page.getRecordCount();
+    
+                                // Update pointers inside this node
+                                for (int j = 0; j < pointers.size(); j++) {
                                     Pair<Integer, Integer> ptr = pointers.get(j);
-                                    if (ptr.getPageNumber() == nextPointer.getPageNumber()) {
-                                        // Adjust index for records moved to new page
-                                        int newIdx = ptr.getIndex() - page.getRecordCount();
-                                        if (newIdx >= 0) {
-                                            pointers.set(j, new Pair<>(splitResult.newPageId, newIdx));
-                                        }
+                                    if (ptr.getPageNumber() == page.getPageId() && ptr.getIndex() >= oldPageRecordCount) {
+                                        int newIdx = ptr.getIndex() - oldPageRecordCount;
+                                        pointers.set(j, new Pair<>(splitResult.newPageId, newIdx));
                                     }
                                 }
-                            
-                                // Propagate updates to neighbors
+    
+                                // Propagate to neighbors
                                 BPlusNode neighbor = getLeftSiblingInclusive();
                                 while (neighbor != null) {
                                     for (int j = 0; j < neighbor.pointers.size(); j++) {
                                         Pair<Integer, Integer> ptr = neighbor.pointers.get(j);
-                                        if (ptr.getPageNumber() == nextPointer.getPageNumber() && 
-                                            (j == 0 || compare(neighbor.keys.get(j - 1), firstVal) >= 0)) {
-                                            int newIdx = ptr.getIndex() - page.getRecordCount();
-                                            if (newIdx >= 0) {
-                                                neighbor.pointers.set(j, new Pair<>(splitResult.newPageId, newIdx));
-                                            }
+                                        if (ptr.getPageNumber() == page.getPageId() && ptr.getIndex() >= oldPageRecordCount) {
+                                            int newIdx = ptr.getIndex() - oldPageRecordCount;
+                                            neighbor.pointers.set(j, new Pair<>(splitResult.newPageId, newIdx));
                                         }
                                     }
                                     neighbor = neighbor.getRightSiblingInclusive();
@@ -139,52 +142,42 @@ public class BPlusNode {
             
                     // Add new pointer for the inserted record
                     pointers.add(new Pair<>(lastPointer.getPageNumber(), lastPointer.getIndex() + 1));
-            
+                    
+
                     if (page.isOverfull()) {
                         SplitResult splitResult = Main.getStorageManager().splitPage(page);
-            
-                        // Debug logging
+
                         System.out.println(" Splitting (end-insert) — pageId=" + page.getPageId() +
                                           ", newPageId=" + splitResult.newPageId +
                                           ", firstRec=" + splitResult.firstRecord.getData());
-            
+
                         Attribute[] attrs = Main.getCatalog().getTable(tableID).getAttributes();
-                        System.out.println(" Attribute count: " + attrs.length);
-                        for (int i = 0; i < attrs.length; i++) {
-                            System.out.println("  [" + i + "] " + attrs[i].getName());
-                        }
-                        System.out.println("firstRec.getData().size() = " + splitResult.firstRecord.getData().size());
-            
                         Object firstVal = splitResult.firstRecord.getAttributeValue(attr.getName(), attrs);
-            
-                        // Add key and pointer for the new page
+
                         keys.add(firstVal);
                         pointers.add(new Pair<>(splitResult.newPageId, splitResult.firstIndex));
-            
-                        // Update existing pointers for records moved to the new page
-                        int originalPageRecords = page.getRecordCount();
+
+                        int oldPageRecordCount = page.getRecordCount();
+
+                        // Update pointers inside this node
                         for (int j = 0; j < pointers.size(); j++) {
                             Pair<Integer, Integer> ptr = pointers.get(j);
-                            if (ptr.getPageNumber() == lastPointer.getPageNumber() && ptr.getIndex() >= originalPageRecords) {
-                                int newIdx = ptr.getIndex() - originalPageRecords;
+                            if (ptr.getPageNumber() == page.getPageId() && ptr.getIndex() >= oldPageRecordCount) {
+                                int newIdx = ptr.getIndex() - oldPageRecordCount;
                                 pointers.set(j, new Pair<>(splitResult.newPageId, newIdx));
                             }
                         }
-            
-                        // Update pointers in neighboring nodes
+
+                        // Propagate to neighbors
                         BPlusNode neighbor = getLeftSiblingInclusive();
                         while (neighbor != null && neighbor != this) {
-                            boolean updated = false;
                             for (int j = 0; j < neighbor.pointers.size(); j++) {
                                 Pair<Integer, Integer> ptr = neighbor.pointers.get(j);
-                                if (ptr.getPageNumber() == lastPointer.getPageNumber() && 
-                                    ptr.getIndex() >= originalPageRecords) {
-                                    int newIdx = ptr.getIndex() - originalPageRecords;
+                                if (ptr.getPageNumber() == page.getPageId() && ptr.getIndex() >= oldPageRecordCount) {
+                                    int newIdx = ptr.getIndex() - oldPageRecordCount;
                                     neighbor.pointers.set(j, new Pair<>(splitResult.newPageId, newIdx));
-                                    updated = true;
                                 }
                             }
-                            if (!updated) break; // Stop if no pointers were updated
                             neighbor = neighbor.getRightSiblingInclusive();
                         }
             

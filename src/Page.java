@@ -66,11 +66,11 @@ public class Page {
         size += rec.getSize();
         updated = true;
     
-        // Debug logging
-        System.out.println("shiftRecordsAndAdd: pageId=" + getPageId() +
-                          ", inserted=" + rec.getData() +
-                          ", startingIndex=" + startingIndex +
-                          ", newRecordCount=" + recordCount);
+        // // Debug logging
+        // System.out.println("shiftRecordsAndAdd: pageId=" + getPageId() +
+        //                   ", inserted=" + rec.getData() +
+        //                   ", startingIndex=" + startingIndex +
+        //                   ", newRecordCount=" + recordCount);
     }
     
     public List<Record> getRecords() {
