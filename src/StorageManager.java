@@ -436,7 +436,7 @@ public class StorageManager {
         }
 
         // Insert new key and pointer into B+Tree
-        return tree.insert(record, pkValue, 0); // actual (page, index) pair is stored inside node
+        return tree.insert(record, pkValue, 0, tableID); // actual (page, index) pair is stored inside node
     }
     
 

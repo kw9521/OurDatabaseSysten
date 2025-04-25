@@ -316,7 +316,7 @@ public class parser {
 
 
                     BPlusTree bPlusTree = Main.getBPlusTrees().get(table.getTableID());
-                    boolean success = bPlusTree.insert(newRecord, primaryKeyValue, recordSize);
+                    boolean success = bPlusTree.insert(newRecord, primaryKeyValue, recordSize, table.getTableID());
                     if (!success) {
                         System.out.println("Insert failed: duplicate primary key");
                         return;

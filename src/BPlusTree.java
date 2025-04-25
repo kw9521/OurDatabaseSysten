@@ -40,9 +40,9 @@ public class BPlusTree {
      * @param pointer The pointer value (page offset).
      * @return true if insertion succeeded, false otherwise.
      */
-    public boolean insert(Record record, Object key, int pointer) {
+    public boolean insert(Record record, Object key, int pointer, int tablID) {
         if (isEmpty()) {
-            root = new BPlusNode(order, true, 0, attr);
+            root = new BPlusNode(order, true, tablID, attr);
         }
         return root.insert(record, key, pointer, false);
     }
