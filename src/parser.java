@@ -199,13 +199,6 @@ public class parser {
         String tableName = tokens[2];
         Table table = catalog.getTableByName(tableName);
 
-
-
-        // print debug
-        System.out.println("\nPRINT DEBUG PRINT DEBUG PRINT DEBUG IN PARSER.JAVA");
-        System.out.println("Table name: " + tableName + " and it's tableID: "+ table.getTableID()+ "\n");
-
-
         if (table == null) {
             System.out.println("No such table " + tableName);
             System.out.println("ERROR\n");
@@ -229,10 +222,6 @@ public class parser {
             for (int i = 0; i < values.length; i++) {
                 values[i] = values[i].replaceAll("^\"|\"$", "").trim();
             }
-
-            System.out.println("\nPARSER.JAVA PINPOINT 1");
-            System.out.println("Table name: " + tableName + " and it's tableID: "+ table.getTableID()+ "\n");
-
 
             if (values.length != table.getAttributesCount()) {
                 String expected = "";
@@ -307,13 +296,6 @@ public class parser {
             Record newRecord = new Record(recordSize, recordValues, nullBitMap);
                 // choose insert operation based on if indexing is on or not
                 if (Main.getIndexing()) {
-
-
-                    System.out.println("\nPRINT DEBUG PRINT DEBUG PRINT DEBUG");
-                    System.out.println("GOT UP TO THE CHECK IF INDEXING IS ON PART");
-                    System.out.println("table name: "+ table.getName());
-                    System.out.println("table id: " +table.getTableID());
-
 
                     BPlusTree bPlusTree = Main.getBPlusTrees().get(table.getTableID());
                     boolean success = bPlusTree.insert(newRecord, primaryKeyValue, recordSize, table.getTableID());
