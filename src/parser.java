@@ -1228,6 +1228,65 @@ public class parser {
 
         List<List<Object>> whereTable = evaluateWhereTree(allRecordData, columnNames, conditionTree);
 
+
+        //Do when indexing is on
+        if (Main.getIndexing()) {
+
+            //Idenfity primary key attribute
+            Attribute pkAttr = null;
+            for (Attribute attr : tableToUpdate.getAttributes()) {
+                if (attr.isPrimaryKey()) {
+                pkAttr = attr;
+                break;
+               }
+            }
+
+            if (pkAttr == null) {
+                System.err.println("No primary key found for table: " + tableName);
+            } else if (conditionTree != null && conditionTree.getValue().equals("=")) {
+                String pkCond = conditionTree.getLeftLeaf().getValue();
+                String value = conditionTree.getRightLeaf().getValue().replaceAll("^\"|\"$", "");
+
+                // Check if WHERE clause targets the PK 
+                if (pkCond.equals(pkAttr.getName()) || pkCond.equals(tableName + "." + pkAttr.getName())) {
+                    Object key = parseValueBasedOnType(value, pkAttr);
+                    BPlusTree index = Main.getBPlusTrees().get(tableToUpdate.getTableID());
+
+                    if (index != null) {
+                        Record record = index.delete(key);
+                        if (record != null) {
+                            Object oldVal = record.getData().get(columnIndex);
+
+                            // Only update if value actually changes
+                            if (!oldVal.equals(newValue)) {
+                                record.getData().set(columnIndex, newValue);
+                                record.setBitMapValue(columnIndex, newValue == null ? 1 : 0);
+
+                                // If we're updating the PK, use the new key; otherwise reuse the same
+                                // determine if primary key changed
+                                int pkIndex = -1;
+                                for (int i = 0; i < attributes.length; i++) {
+                                    if (attributes[i].getName().equalsIgnoreCase(pkAttr.getName())) {
+                                        pkIndex = i;
+                                        break;
+                                    }
+                                }
+                                Object newKey = (columnIndex == pkIndex) ? newValue : key;
+
+                                index.update(record, newKey, key);
+                            }
+                            System.out.println("SUCCESS\n");
+                            return;
+                        } else {
+                            System.out.println("No matching record found to update.\n");
+                            return;
+                        }
+                    }
+                }
+            }
+        }
+        
+        //Do when indexing is off
         for (Page page : pages) {
             List<Record> records = page.getRecords();
             for (Record record : records) {
