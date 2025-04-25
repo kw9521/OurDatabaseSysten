@@ -57,6 +57,13 @@ public class BPlusNode {
     
                         if (isLeaf) {
                             Pair<Integer, Integer> nextPointer = pointers.get(i);
+                            
+
+                            // PRINT DEBUG PRINT DEBUG PRINT DEBUG
+                            System.out.println("\nPRINT DEBUG PRINT DEBUG PRINT DEBUG IN BPLUSNODE.JAVA");
+                            System.out.println("b+tree's tablename: " + Main.getCatalog().getTable(tableID).getName() );
+                            System.out.println();
+
                             Page page = Main.getStorageManager().getPage(tableID, nextPointer.getPageNumber());
                             page.shiftRecordsAndAdd(record, nextPointer.getIndex());
     
